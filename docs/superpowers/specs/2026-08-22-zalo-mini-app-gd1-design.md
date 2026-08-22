@@ -210,6 +210,10 @@ Bổ sung thứ hai — **thiếu trong bản gốc §6**: danh sách 13 endpoin
 |---|---|---|
 | GET | `/api/patient-app/appointments?patient_id=&from=&to=` | Phiên app |
 | GET | `/api/patient-app/appointments/:id` | Phiên app **hoặc** phiên ngắn hạn |
+| POST | `/api/patient-app/unlink` | Phiên app — thân JSON mang `patientId` |
+
+`unlink` cũng thiếu trong bản gốc §6, dù §10 đặt nó thành tiêu chí nghiệm thu
+("huỷ liên kết được, có hiệu lực ngay, và liên kết lại được sau đó").
 
 `:id` ở đây là khoá chính, **không phải** mã hẹn — không vi phạm quy tắc "không đặt
 mã hẹn trong URL" ở §6.2, vì phiên đã xác định người gọi trước khi tới đường dẫn này.

@@ -1,5 +1,3 @@
-import { TimeSlot } from "@/types";
-
 export function formatPrice(price: number) {
   return new Intl.NumberFormat("vi-VN", {
     style: "currency",
@@ -32,8 +30,4 @@ export const formatShortDate = (date: Date) => {
   const month = (date.getMonth() + 1).toString().padStart(2, "0");
   const day = date.getDate().toString().padStart(2, "0");
   return `${month}.${day}`;
-};
-
-export const formatTimeSlot = ({ hour, half }: TimeSlot["time"]) => {
-  return `${hour.toString().padStart(2, "0")}:${half ? "30" : "00"}`;
 };
