@@ -1,9 +1,16 @@
 import { useAtomValue } from "jotai";
+import LinkRequired from "@/components/link-required";
 import { activePatientIdState, queueState } from "@/state";
 
 export default function QueuePage() {
   const patientId = useAtomValue(activePatientIdState);
-  const queue = useAtomValue(queueState(patientId ?? 0));
+  const queue = useAtomValue(queueState(patientId));
+
+  if (queue === null) {
+    return (
+      <LinkRequired loiNhan="Liên kết hồ sơ để xem số thứ tự khám của bạn hôm nay." />
+    );
+  }
 
   if (queue.myNumber === null) {
     return (

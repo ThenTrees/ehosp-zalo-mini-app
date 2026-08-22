@@ -88,26 +88,37 @@ export const bookingFormState = atomWithReset<{
 }>({});
 
 /**
- * Lịch hẹn, số thứ tự, hoá đơn, thông báo — tất cả khoá theo hồ sơ
+ * Lịch hẹn, số thứ tự, hoá đơn, thông báo — tất cả khoá theo hồ sơ.
+ *
+ * Khoá nhận `null` nghĩa là "chưa chọn hồ sơ nào", và khi đó atom trả về rỗng
+ * **mà không gọi API**. Đây không phải tiện nghi: hook của React không đặt
+ * điều kiện được, nên trang luôn phải đọc atom trước rồi mới rẽ nhánh được.
+ * Nếu atom đòi một `number`, trang buộc phải bịa ra một mã bệnh nhân giả
+ * (`patientId ?? 0`) và đi hỏi dữ liệu của một người không tồn tại — máy chủ
+ * thật sẽ trả 403 cho mọi người dùng chưa liên kết.
  */
-export const appointmentsState = atomFamily((patientId: number) =>
-  atomWithRefresh(async () => api.appointments({ patientId }))
+export const appointmentsState = atomFamily((patientId: number | null) =>
+  atomWithRefresh(async () =>
+    patientId === null ? [] : api.appointments({ patientId })
+  )
 );
 
 export const appointmentByIdState = atomFamily((id: number) =>
   atomWithRefresh(async () => api.appointment(id))
 );
 
-export const queueState = atomFamily((patientId: number) =>
-  atomWithRefresh(async () => api.queue({ patientId }))
+export const queueState = atomFamily((patientId: number | null) =>
+  atomWithRefresh(async () =>
+    patientId === null ? null : api.queue({ patientId })
+  )
 );
 
-export const invoicesState = atomFamily((patientId: number) =>
-  atom(async () => api.invoices({ patientId }))
+export const invoicesState = atomFamily((patientId: number | null) =>
+  atom(async () => (patientId === null ? [] : api.invoices({ patientId })))
 );
 
-export const notificationsState = atomFamily((patientId: number) =>
-  atom(async () => api.notifications({ patientId }))
+export const notificationsState = atomFamily((patientId: number | null) =>
+  atom(async () => (patientId === null ? [] : api.notifications({ patientId })))
 );
 
 /**

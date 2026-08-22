@@ -1,12 +1,17 @@
 import { useAtomValue } from "jotai";
 import { useNavigate } from "react-router-dom";
+import LinkRequired from "@/components/link-required";
 import { activePatientIdState, invoicesState } from "@/state";
 import { formatPrice } from "@/utils/format";
 
 export default function InvoicesPage() {
   const navigate = useNavigate();
   const patientId = useAtomValue(activePatientIdState);
-  const invoices = useAtomValue(invoicesState(patientId ?? 0));
+  const invoices = useAtomValue(invoicesState(patientId));
+
+  if (patientId === null) {
+    return <LinkRequired loiNhan="Liên kết hồ sơ để xem hoá đơn viện phí." />;
+  }
 
   if (invoices.length === 0) {
     return <div className="p-4 text-disabled">Chưa có hoá đơn nào.</div>;

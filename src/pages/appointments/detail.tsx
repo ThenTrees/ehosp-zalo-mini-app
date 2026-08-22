@@ -18,7 +18,7 @@ export default function AppointmentDetailPage() {
   const hen = useAtomValue(appointmentByIdState(appointmentId));
   const refreshHen = useSetAtom(appointmentByIdState(appointmentId));
   const patientId = useAtomValue(activePatientIdState);
-  const refreshList = useSetAtom(appointmentsState(patientId ?? 0));
+  const refreshList = useSetAtom(appointmentsState(patientId));
   const setTitle = useSetAtom(customTitleState);
   const [dangGui, setDangGui] = useState(false);
 

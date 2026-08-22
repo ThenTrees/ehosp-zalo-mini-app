@@ -1,9 +1,14 @@
 import { useAtomValue } from "jotai";
+import LinkRequired from "@/components/link-required";
 import { activePatientIdState, notificationsState } from "@/state";
 
 export default function NotificationsPage() {
   const patientId = useAtomValue(activePatientIdState);
-  const notifications = useAtomValue(notificationsState(patientId ?? 0));
+  const notifications = useAtomValue(notificationsState(patientId));
+
+  if (patientId === null) {
+    return <LinkRequired loiNhan="Liên kết hồ sơ để nhận thông báo từ phòng khám." />;
+  }
 
   if (notifications.length === 0) {
     return <div className="p-4 text-disabled">Chưa có thông báo nào.</div>;

@@ -1,5 +1,6 @@
 import { useAtomValue } from "jotai";
 import { useNavigate } from "react-router-dom";
+import LinkRequired from "@/components/link-required";
 import { activePatientIdState, appointmentsState } from "@/state";
 import type { AppointmentStatus } from "@/types";
 
@@ -15,14 +16,10 @@ const NHAN_TRANG_THAI: Record<AppointmentStatus, string> = {
 export default function AppointmentsPage() {
   const navigate = useNavigate();
   const patientId = useAtomValue(activePatientIdState);
-  const appointments = useAtomValue(appointmentsState(patientId ?? 0));
+  const appointments = useAtomValue(appointmentsState(patientId));
 
-  if (!patientId) {
-    return (
-      <div className="p-4 text-disabled">
-        Vui lòng liên kết hồ sơ để xem lịch hẹn.
-      </div>
-    );
+  if (patientId === null) {
+    return <LinkRequired loiNhan="Liên kết hồ sơ để xem lịch hẹn của bạn." />;
   }
 
   if (appointments.length === 0) {

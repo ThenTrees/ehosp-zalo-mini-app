@@ -7,7 +7,7 @@ export default function HomePage() {
   const navigate = useNavigate();
   const profiles = useAtomValue(profilesState);
   const patientId = useAtomValue(activePatientIdState);
-  const appointments = useAtomValue(appointmentsState(patientId ?? 0));
+  const appointments = useAtomValue(appointmentsState(patientId));
 
   if (profiles.length === 0) {
     return (

@@ -20,7 +20,7 @@ export default function Step3() {
   const resetForm = useResetAtom(bookingFormState);
   const departments = useAtomValue(departmentsState);
   const patientId = useAtomValue(activePatientIdState);
-  const refreshAppointments = useSetAtom(appointmentsState(patientId ?? 0));
+  const refreshAppointments = useSetAtom(appointmentsState(patientId));
   const [dangGui, setDangGui] = useState(false);
 
   const department = departments.find((d) => d.id === form.departmentId);
