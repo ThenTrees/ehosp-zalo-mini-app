@@ -32,7 +32,6 @@ export function useRouteHandle() {
       back?: boolean;
       scrollRestoration?: number;
       noScroll?: boolean;
-      profile?: boolean;
     }
   >[];
   const lastMatch = matches[matches.length - 1];

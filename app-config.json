@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "My Doctor App",
+    "title": "Phòng khám phường Sài Gòn",
     "textColor": "black",
     "statusBar": "transparent",
     "actionBarHidden": true,
@@ -11,7 +11,6 @@
   "listSyncJS": [],
   "listAsyncJS": [],
   "template": {
-    "name": "zaui-doctor",
-    "oaID": "4318657068771012646"
+    "name": "zaui-doctor"
   }
 }

@@ -3,9 +3,13 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const store: Record<string, string> = {};
 
 vi.mock("zmp-sdk", () => ({
-  getStorage: vi.fn(async ({ keys }: { keys: string[] }) =>
-    Object.fromEntries(keys.map((k) => [k, store[k]]))
-  ),
+  getStorage: vi.fn(async ({ keys }: { keys: string[] }) => {
+    const out: Record<string, string> = {};
+    keys.forEach((k) => {
+      out[k] = store[k];
+    });
+    return out;
+  }),
   setStorage: vi.fn(async ({ data }: { data: Record<string, string> }) => {
     Object.assign(store, data);
   }),

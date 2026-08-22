@@ -16,9 +16,9 @@ const NAV_ITEMS = [
     icon: HomeIcon,
   },
   {
-    name: "Khám phá",
-    path: "/explore",
-    icon: ExploreIcon,
+    name: "Lịch hẹn",
+    path: "/appointments",
+    icon: ChatIcon,
   },
   {
     path: "/booking",
@@ -27,13 +27,13 @@ const NAV_ITEMS = [
     ),
   },
   {
-    name: "Lịch khám",
-    path: "/schedule",
-    icon: ChatIcon,
+    name: "Số thứ tự",
+    path: "/queue",
+    icon: ExploreIcon,
   },
   {
-    name: "Cá nhân",
-    path: "/profile",
+    name: "Hồ sơ",
+    path: "/profiles",
     icon: ProfileIcon,
   },
 ];
