@@ -3,6 +3,8 @@ import { createBrowserRouter } from "react-router-dom";
 import { ErrorBoundary } from "./components/error-boundary";
 import NotFound from "./pages/404";
 import PlaceholderPage from "./pages/placeholder";
+import LinkPage from "./pages/link";
+import ProfilesPage from "./pages/profiles";
 
 const router = createBrowserRouter(
   [
@@ -13,12 +15,12 @@ const router = createBrowserRouter(
         { path: "/", element: <PlaceholderPage title="Trang chủ" /> },
         {
           path: "/link",
-          element: <PlaceholderPage title="Liên kết tài khoản" />,
+          element: <LinkPage />,
           handle: { back: true, title: "Liên kết tài khoản" },
         },
         {
           path: "/profiles",
-          element: <PlaceholderPage title="Hồ sơ của tôi" />,
+          element: <ProfilesPage />,
           handle: { back: true, title: "Hồ sơ của tôi" },
         },
         {
