@@ -2,7 +2,10 @@ import Layout from "@/components/layout";
 import { createBrowserRouter } from "react-router-dom";
 import { ErrorBoundary } from "./components/error-boundary";
 import NotFound from "./pages/404";
-import PlaceholderPage from "./pages/placeholder";
+import HomePage from "./pages/home";
+import InvoicesPage from "./pages/invoices";
+import InvoiceQrPage from "./pages/invoices/qr";
+import NotificationsPage from "./pages/notifications";
 import LinkPage from "./pages/link";
 import ProfilesPage from "./pages/profiles";
 import BookingPage from "./pages/booking";
@@ -16,7 +19,7 @@ const router = createBrowserRouter(
       path: "/",
       element: <Layout />,
       children: [
-        { path: "/", element: <PlaceholderPage title="Trang chủ" /> },
+        { path: "/", element: <HomePage /> },
         {
           path: "/link",
           element: <LinkPage />,
@@ -45,17 +48,17 @@ const router = createBrowserRouter(
         },
         {
           path: "/invoices",
-          element: <PlaceholderPage title="Hóa đơn" />,
+          element: <InvoicesPage />,
           handle: { back: true, title: "Hóa đơn" },
         },
         {
           path: "/invoices/:id/qr",
-          element: <PlaceholderPage title="Mã thanh toán" />,
+          element: <InvoiceQrPage />,
           handle: { back: true, title: "Thanh toán" },
         },
         {
           path: "/notifications",
-          element: <PlaceholderPage title="Thông báo" />,
+          element: <NotificationsPage />,
           handle: { back: true, title: "Thông báo" },
         },
         { path: "*", element: <NotFound /> },
