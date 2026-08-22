@@ -6,6 +6,9 @@ import PlaceholderPage from "./pages/placeholder";
 import LinkPage from "./pages/link";
 import ProfilesPage from "./pages/profiles";
 import BookingPage from "./pages/booking";
+import AppointmentsPage from "./pages/appointments";
+import AppointmentDetailPage from "./pages/appointments/detail";
+import QueuePage from "./pages/queue";
 
 const router = createBrowserRouter(
   [
@@ -29,15 +32,15 @@ const router = createBrowserRouter(
           element: <BookingPage />,
           handle: { back: true, title: "Đặt lịch khám" },
         },
-        { path: "/appointments", element: <PlaceholderPage title="Lịch hẹn" /> },
+        { path: "/appointments", element: <AppointmentsPage /> },
         {
           path: "/appointments/:id",
-          element: <PlaceholderPage title="Chi tiết lịch hẹn" />,
+          element: <AppointmentDetailPage />,
           handle: { back: true, title: "custom" },
         },
         {
           path: "/queue",
-          element: <PlaceholderPage title="Số thứ tự" />,
+          element: <QueuePage />,
           handle: { back: true, title: "Số thứ tự hôm nay" },
         },
         {
