@@ -36,3 +36,6 @@ Thumbs.db
 
 # Production build
 www/
+
+# Cau hinh MCP cuc bo — co the chua khoa API
+.mcp.json
