@@ -1,78 +1,28 @@
-import DateTimePicker from "@/components/form/date-time-picker";
-import DoctorSelector from "@/components/form/doctor-selector";
-import DepartmentPicker from "@/components/form/department-picker";
-import FabForm from "@/components/form/fab-form";
-import { availableTimeSlotsState, bookingFormState } from "@/state";
-import { useAtom, useAtomValue } from "jotai";
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { TimeSlot } from "@/types";
-import toast from "react-hot-toast";
+import { useAtomValue, useSetAtom } from "jotai";
+import { departmentsState, bookingFormState } from "@/state";
 
-export default function Step1() {
-  const timeSlots = useAtomValue(availableTimeSlotsState);
-  const [formData, setFormData] = useAtom(bookingFormState);
-  const [selectedSlot, setSelectedSlot] = useState<Partial<TimeSlot>>(
-    formData.slot ?? {}
-  );
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (selectedSlot) {
-      const { date, time } = selectedSlot;
-      if (date && time) {
-        setFormData((prev) => ({
-          ...prev,
-          slot: { date, time },
-        }));
-      }
-    }
-  }, [selectedSlot]);
+export default function Step1({ onNext }: { onNext: () => void }) {
+  const departments = useAtomValue(departmentsState);
+  const setForm = useSetAtom(bookingFormState);
 
   return (
-    <FabForm
-      fab={{
-        children: "Tiếp tục",
-        disabled: !formData.slot || !formData.department || !formData.doctor,
-        onClick: () => {
-          navigate("/booking/2", {
-            viewTransition: true,
-          });
-        },
-        onDisabledClick() {
-          toast.error("Vui lòng điền đầy đủ thông tin!");
-        },
-      }}
-    >
-      <div className="bg-white flex flex-col space-y-1">
-        <div className="p-4">
-          <DepartmentPicker
-            label="Khoa khám"
-            placeholder="Chọn khoa khám"
-            value={formData?.department}
-            onChange={(department) =>
-              setFormData((prev) => ({
-                ...prev,
-                department,
-              }))
-            }
-          />
-        </div>
-        <DateTimePicker
-          value={selectedSlot}
-          onChange={setSelectedSlot}
-          slots={timeSlots}
-        />
-      </div>
-      <DoctorSelector
-        value={formData?.doctor}
-        onChange={(doctor) =>
-          setFormData((prev) => ({
-            ...prev,
-            doctor,
-          }))
-        }
-      />
-    </FabForm>
+    <div className="p-4 space-y-3">
+      <p className="text-sm text-disabled">Chọn chuyên khoa bạn muốn khám.</p>
+      {departments.map((department) => (
+        <button
+          key={department.id}
+          className="w-full text-left p-3 rounded-xl bg-white active:scale-[0.99]"
+          onClick={() => {
+            setForm((form) => ({ ...form, departmentId: department.id }));
+            onNext();
+          }}
+        >
+          <div className="font-medium">{department.name}</div>
+          {department.description && (
+            <div className="text-2xs text-disabled">{department.description}</div>
+          )}
+        </button>
+      ))}
+    </div>
   );
 }

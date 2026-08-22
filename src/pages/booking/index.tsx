@@ -1,14 +1,16 @@
-import { useParams } from 'react-router-dom';
-import Step1 from './step1';
-import Step2 from './step2';
-import Step3 from './step3';
+import { useState } from "react";
+import Step1 from "./step1";
+import Step2 from "./step2";
+import Step3 from "./step3";
 
-function BookingPage() {
-  const { step } = useParams();
-  const currentStep = Number(step ?? '1') - 1;
-  const CurrentStep = [Step1, Step2, Step3][currentStep];
+export default function BookingPage() {
+  const [buoc, setBuoc] = useState(1);
 
-  return <CurrentStep />;
+  if (buoc === 1) {
+    return <Step1 onNext={() => setBuoc(2)} />;
+  }
+  if (buoc === 2) {
+    return <Step2 onNext={() => setBuoc(3)} />;
+  }
+  return <Step3 />;
 }
-
-export default BookingPage;

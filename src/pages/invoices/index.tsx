@@ -1,38 +1,43 @@
-import { Button } from "@/components/button";
-import { DashedDivider } from "@/components/dashed-divider";
-import PolarizedList from "@/components/polarized-list";
-import { invoicesState, userState } from "@/state";
 import { useAtomValue } from "jotai";
+import { useNavigate } from "react-router-dom";
+import { activePatientIdState, invoicesState } from "@/state";
+import { formatPrice } from "@/utils/format";
 
-function InvoicesPage() {
-  const { userInfo } = useAtomValue(userState);
-  const invoices = useAtomValue(invoicesState);
+export default function InvoicesPage() {
+  const navigate = useNavigate();
+  const patientId = useAtomValue(activePatientIdState);
+  const invoices = useAtomValue(invoicesState(patientId ?? 0));
+
+  if (invoices.length === 0) {
+    return <div className="p-4 text-disabled">Chưa có hoá đơn nào.</div>;
+  }
 
   return (
-    <div className="py-5 px-4 space-y-4">
-      {invoices.map((invoice) => (
-        <div
-          key={invoice.id}
-          className="w-full space-y-6 rounded-2xl bg-white px-4 py-6"
+    <div className="p-4 space-y-3">
+      {invoices.map((hoaDon) => (
+        <button
+          key={hoaDon.id}
+          disabled={hoaDon.paid || hoaDon.amountDue === 0}
+          onClick={() =>
+            navigate(`/invoices/${hoaDon.id}/qr`, { viewTransition: true })
+          }
+          className="w-full text-left p-3 rounded-xl bg-white disabled:opacity-60"
         >
-          <div className="text-xl font-medium">
-            {invoice.booking.department.name}
+          <div className="flex justify-between">
+            <span className="font-medium">Khám ngày {hoaDon.visitDate}</span>
+            <span className="text-2xs text-disabled">
+              {hoaDon.paid
+                ? "Đã thanh toán"
+                : hoaDon.amountDue === 0
+                  ? "BHYT chi trả toàn bộ"
+                  : "Chưa thanh toán"}
+            </span>
           </div>
-          <DashedDivider />
-          <PolarizedList
-            items={[
-              ["Tên", userInfo.name],
-              ["Khu vực bệnh viện", "Bệnh viện Quốc tế Gia Hội Thượng Hải"],
-              ["Khoa", "Nội khoa A"],
-              ["Thời gian khám bệnh", "2022.02.16 Thứ Tư 09:00-09:30"],
-              ["Loại khám bệnh", "Khám bệnh\nKhám lần đầu"],
-            ]}
-          />
-          <Button>Thanh toán</Button>
-        </div>
+          <div className="text-2xs text-primary">
+            {formatPrice(hoaDon.amountDue)}
+          </div>
+        </button>
       ))}
     </div>
   );
 }
-
-export default InvoicesPage;
