@@ -330,6 +330,22 @@ Kế thừa nguyên §9 của `12-MOBILE-APP.md`, phần áp dụng cho GĐ1:
 
 Hoãn sang GĐ2: nút CTA trong ZNS mở thẳng lịch hẹn; đường web cho người không dùng Zalo.
 
+### 10.1. Trạng thái sau khi hoàn thành Khối B (2026-08-22)
+
+| Tiêu chí | Trạng thái |
+|---|---|
+| Đặt được lịch trong ≤ 4 thao tác | **đạt** — Trang chủ → khoa → buổi → xác nhận |
+| Xem số thứ tự và số đang gọi | **đạt** trên tầng giả |
+| Không endpoint nào trả nội dung lâm sàng | **đạt** — `khong-lam-sang.test.ts` rà `types.d.ts` tự động |
+| Liên kết cần hai yếu tố | **đạt** trên tầng giả |
+| Huỷ liên kết được và liên kết lại được | **đạt** trên tầng giả |
+| Không nhận mã hẹn qua URL | **đạt** — `buildUrl` ném lỗi, có test trong `http.test.ts` |
+| Khoá sau 20 lần dò mã sai | **chờ back-end** — luật của máy chủ |
+| Một tài khoản nhiều hồ sơ | **đạt** |
+| Mọi truy cập vào `emr_access_log` | **chờ back-end** |
+| Lịch `source = PATIENT_APP` không sinh XML14 | **chờ back-end** |
+| Chỉ 30% công suất mở cho app | **đạt** trên tầng giả — máy chủ phải áp lại luật này |
+
 ## 11. Thứ tự thực hiện
 
 | Khối | Kho mã | Nội dung | Phụ thuộc |
