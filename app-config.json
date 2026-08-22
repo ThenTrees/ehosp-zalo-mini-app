@@ -1,0 +1,17 @@
+{
+  "app": {
+    "title": "My Doctor App",
+    "textColor": "black",
+    "statusBar": "transparent",
+    "actionBarHidden": true,
+    "hideIOSSafeAreaBottom": true,
+    "hideAndroidBottomNavigationBar": false
+  },
+  "listCSS": [],
+  "listSyncJS": [],
+  "listAsyncJS": [],
+  "template": {
+    "name": "zaui-doctor",
+    "oaID": "4318657068771012646"
+  }
+}

@@ -1,0 +1,54 @@
+:root {
+  --primary: #00abbb;
+  --primary-gradient: #00bead;
+  --highlight: #01bdaf1a;
+  --background: #f2f9f9;
+  --disabled: #9a9a9a;
+
+  --zaui-light-body-background-color: var(--background);
+  --zaui-light-input-border-color: rgba(0, 0, 0, 0.1);
+  --zaui-light-input-hover-border-color: var(--primary);
+  --zaui-light-option-selected-color: var(--primary);
+  --zaui-light-radio-checked-background: var(--primary);
+
+  --safe-top: var(--zaui-safe-area-inset-top, env(safe-area-inset-top, 30px));
+  --safe-bottom: max(
+    8px,
+    var(--zaui-safe-area-inset-bottom, env(safe-area-inset-bottom, 30px))
+  );
+}
+
+:not(input):not(textarea) {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.zaui-select {
+  &.zaui-input-affix-wrapper,
+  .zaui-input-affix-wrapper {
+    border-radius: 100px;
+  }
+}
+
+.zaui-input-textarea-affix-wrapper {
+  &.zaui-input-affix-wrapper {
+    border: none;
+  }
+
+  .zaui-input-show-count-suffix {
+    border-radius: 10px;
+    background: #f3f3f3;
+    padding: 2px 6px;
+    font-size: 10px;
+    color: #656565;
+  }
+
+  .zaui-input-textarea ~ .zaui-input-suffix .zaui-input-show-count-suffix {
+    bottom: 0;
+    right: 0;
+  }
+}
+
+.zaui-sheet-content {
+  max-height: calc(100vh - 200px);
+}

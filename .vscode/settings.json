@@ -1,0 +1,28 @@
+{
+  "json.schemas": [
+    {
+      "fileMatch": ["app-config.json"],
+      "schema": {
+        "type": "object",
+        "properties": {
+          "template": {
+            "description": "Cấu hình riêng của template ZaUI F&B",
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "enum": ["zaui-doctor"],
+                "description": "Tên template. Bắt buộc phải mang giá trị zaui-doctor"
+              },
+              "oaID": {
+                "type": "string",
+                "description": "ID của OA được mở chat khi người dùng nhấn vào nút Liên hệ"
+              }
+            },
+            "required": ["name"]
+          }
+        }
+      }
+    }
+  ]
+}
