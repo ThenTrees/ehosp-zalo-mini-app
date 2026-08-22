@@ -202,6 +202,18 @@ Bổ sung cho D4 (nhiều hồ sơ): `GET /api/patient-app/me` trả **danh sác
 liên kết**; mọi endpoint đọc dữ liệu nhận thêm tham số `patient_id`, và server
 kiểm tra `patient_id` đó thuộc danh sách liên kết còn hiệu lực của phiên hiện tại.
 
+Bổ sung thứ hai — **thiếu trong bản gốc §6**: danh sách 13 endpoint có
+`POST /appointments` để tạo nhưng không có đường nào để **đọc** lịch hẹn, trong khi
+"Lịch hẹn của tôi" là chức năng số 3 của GĐ1. Thêm:
+
+| Method | Đường dẫn | Xác thực |
+|---|---|---|
+| GET | `/api/patient-app/appointments?patient_id=&from=&to=` | Phiên app |
+| GET | `/api/patient-app/appointments/:id` | Phiên app **hoặc** phiên ngắn hạn |
+
+`:id` ở đây là khoá chính, **không phải** mã hẹn — không vi phạm quy tắc "không đặt
+mã hẹn trong URL" ở §6.2, vì phiên đã xác định người gọi trước khi tới đường dẫn này.
+
 ### 6.1. Ba quy tắc bắt buộc
 
 1. **Không endpoint nào trả nội dung lâm sàng.** Không chẩn đoán, không kết quả,
