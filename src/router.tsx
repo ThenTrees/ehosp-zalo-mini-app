@@ -5,6 +5,7 @@ import NotFound from "./pages/404";
 import PlaceholderPage from "./pages/placeholder";
 import LinkPage from "./pages/link";
 import ProfilesPage from "./pages/profiles";
+import BookingPage from "./pages/booking";
 
 const router = createBrowserRouter(
   [
@@ -25,7 +26,7 @@ const router = createBrowserRouter(
         },
         {
           path: "/booking/:step?",
-          element: <PlaceholderPage title="Đặt lịch khám" />,
+          element: <BookingPage />,
           handle: { back: true, title: "Đặt lịch khám" },
         },
         { path: "/appointments", element: <PlaceholderPage title="Lịch hẹn" /> },
