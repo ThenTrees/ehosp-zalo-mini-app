@@ -18,6 +18,8 @@
     "login": "zmp login",
     "start": "zmp start",
     "deploy": "zmp deploy",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
     "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx}\" | cat"
   },
   "dependencies": {
@@ -42,6 +44,7 @@
     "sass": "^1.76.0",
     "tailwindcss": "^3.4.3",
     "vite": "^5.2.13",
+    "vitest": "^2.1.9",
     "zmp-vite-plugin": "latest"
   }
 }
