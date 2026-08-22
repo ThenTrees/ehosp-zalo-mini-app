@@ -1,198 +1,116 @@
 import { atom } from "jotai";
-import {
-  atomFamily,
-  atomWithDefault,
-  atomWithLazy,
-  atomWithRefresh,
-  atomWithReset,
-  loadable,
-} from "jotai/utils";
-import {
-  Article,
-  AvailableTimeSlots,
-  Booking,
-  Department,
-  DepartmentGroup,
-  Doctor,
-  Feedback,
-  Inquiry,
-  Invoice,
-  Service,
-  SymptomDescription,
-  TimeSlot,
-} from "./types";
-import {
-  mock7DaysTimeSlots,
-  mockDoctors,
-  mockBookings,
-  mockServices,
-  mockInvoices,
-  mockArticles,
-  mockDepartments,
-  mockDepartmentGroups,
-  mockSymptoms,
-  mockFeedbackCategories,
-} from "./utils/mock";
-import { getUserInfo } from "zmp-sdk";
-import { toLowerCaseNonAccentVietnamese, wait } from "./utils/miscellaneous";
-import { NotifiableError } from "./utils/errors";
+import { atomFamily, atomWithRefresh, atomWithReset } from "jotai/utils";
+import { api, setSessionToken } from "@/services";
+import { clearSession, loadSession, saveSession } from "@/services/session";
+import type { Session } from "@/types";
 
 /**
- * Listings
+ * Phiên và hồ sơ đang xem
  */
-export const servicesState = atom<Promise<Service[]>>(mockServices);
-
-export const doctorsState = atom<Promise<Doctor[]>>(mockDoctors);
-
-export const availableTimeSlotsState =
-  atom<Promise<AvailableTimeSlots[]>>(mock7DaysTimeSlots);
-
-export const articlesState = atom<Promise<Article[]>>(mockArticles);
-
-export const departmentGroupsState =
-  atom<Promise<DepartmentGroup[]>>(mockDepartmentGroups);
-
-export const departmentsState = atom<Promise<Department[]>>(mockDepartments);
-
-export const schedulesState = atom<Promise<Booking[]>>(mockBookings);
-
-export const invoicesState = atom<Promise<Invoice[]>>(mockInvoices);
-
-export const symptomsState = atom<Promise<string[]>>(mockSymptoms);
-
-export const feedbackCategoriesState = atom<Promise<string[]>>(
-  mockFeedbackCategories
-);
-
-/**
- * Details
- */
-export const serviceByIdState = atomFamily((id: number) =>
-  atom(async (get) => {
-    const services = await get(servicesState);
-    return services.find((service) => service.id === id);
-  })
-);
-
-export const departmentByIdState = atomFamily((id: number) =>
-  atom(async (get) => {
-    const departments = await get(departmentsState);
-    return departments.find((dep) => dep.id === id);
-  })
-);
-
-export const scheduleByIdState = atomFamily((id: number) =>
-  atom(async (get) => {
-    const schedules = await get(schedulesState);
-    return schedules.find((s) => s.id === id);
-  })
-);
-
-export const newsByIdState = atomFamily((id: number) =>
-  atom(async (get) => {
-    const articles = await get(articlesState);
-    return articles.find((news) => news.id === id);
-  })
-);
-
-/**
- * Heavily computed values
- */
-export const departmentHierarchyState = atom(async (get) => {
-  const [groups, deps] = await Promise.all([
-    get(departmentGroupsState),
-    get(departmentsState),
-  ]);
-
-  return groups.map((group) => ({
-    ...group,
-    subDepartments: deps.filter((dep) => dep.groupId === group.id),
-  }));
+export const profilesState = atomWithRefresh(async () => {
+  const { profiles } = await api.me();
+  return profiles;
 });
 
-export const searchResultState = atomFamily((keyword: string) =>
-  loadable(
-    atom(async (get) => {
-      await wait(1500);
-      const [doctors, departments, news] = await Promise.all([
-        get(doctorsState),
-        get(departmentsState),
-        get(articlesState),
-      ]);
-      const normalizedKeyword = toLowerCaseNonAccentVietnamese(keyword);
-      return {
-        doctors: doctors.filter(
-          (d) =>
-            toLowerCaseNonAccentVietnamese(d.name).includes(
-              normalizedKeyword
-            ) ||
-            toLowerCaseNonAccentVietnamese(d.specialties).includes(
-              normalizedKeyword
-            )
-        ),
-        departments: departments.filter((d) =>
-          toLowerCaseNonAccentVietnamese(d.name).includes(normalizedKeyword)
-        ),
-        news: news.filter(
-          (n) =>
-            toLowerCaseNonAccentVietnamese(n.title).includes(
-              normalizedKeyword
-            ) ||
-            toLowerCaseNonAccentVietnamese(n.category).includes(
-              normalizedKeyword
-            )
-        ),
-      };
-    })
-  )
+/** Kho chứa thật, không xuất ra ngoài — ghi vào đây không kèm việc lưu trữ. */
+const activePatientIdBaseState = atom<number | null>(null);
+
+/**
+ * Hồ sơ đang xem. Đọc ra là `number | null`; ghi vào thì đồng thời lưu xuống
+ * kho lưu trữ của zmp-sdk để lần mở app sau vẫn đúng hồ sơ.
+ */
+export const activePatientIdState = atom(
+  (get) => get(activePatientIdBaseState),
+  async (_get, set, patientId: number | null) => {
+    set(activePatientIdBaseState, patientId);
+    const session = await loadSession();
+    if (session) {
+      await saveSession({ ...session, activePatientId: patientId });
+    }
+  }
 );
 
-export const userState = atomWithRefresh(() => {
-  return getUserInfo({
-    avatarType: "normal",
-  }).catch(() => {
-    throw new NotifiableError(
-      "Vui lòng cho phép truy cập tên và ảnh đại diện!"
-    );
-  });
+export const activeProfileState = atom(async (get) => {
+  const profiles = await get(profilesState);
+  const activeId = get(activePatientIdState);
+  return profiles.find((p) => p.patientId === activeId) ?? profiles[0] ?? null;
+});
+
+/** Nạp lại phiên đã lưu khi mở app. `Layout` gọi đúng một lần lúc mount. */
+export const hydrateSessionState = atom(null, async (_get, set) => {
+  const session = await loadSession();
+  setSessionToken(session?.token ?? null);
+  set(activePatientIdBaseState, session?.activePatientId ?? null);
+  set(profilesState);
+});
+
+/** Ghi phiên xuống kho lưu trữ sau khi liên kết thành công. */
+export const applyLinkState = atom(
+  null,
+  async (_get, set, payload: { token: string; patientId: number }) => {
+    setSessionToken(payload.token);
+    await saveSession({
+      token: payload.token,
+      activePatientId: payload.patientId,
+    });
+    set(activePatientIdBaseState, payload.patientId);
+    set(profilesState);
+  }
+);
+
+export const unlinkState = atom(null, async (_get, set, patientId: number) => {
+  await api.unlink(patientId);
+  await clearSession();
+  setSessionToken(null);
+  set(activePatientIdBaseState, null);
+  set(profilesState);
 });
 
 /**
- * Forms
+ * Danh mục
  */
-export const symptomFormState = atomWithReset<SymptomDescription>({
-  symptoms: [],
-  description: "",
-  images: [],
-});
+export const departmentsState = atom(async () => api.departments());
+
+/**
+ * Đặt lịch
+ */
+export const slotsState = atomFamily(
+  ({ departmentId, date }: { departmentId: number; date: string }) =>
+    atom(async () => api.slots({ departmentId, date })),
+  (a, b) => a.departmentId === b.departmentId && a.date === b.date
+);
 
 export const bookingFormState = atomWithReset<{
-  slot?: TimeSlot;
-  doctor?: Doctor;
-  department?: Department;
-  symptoms: string[];
-  description: string;
-  images: string[];
-}>({
-  symptoms: [],
-  description: "",
-  images: [] as string[],
-});
-
-export const askFormState = atomWithReset<Inquiry>({
-  symptoms: [],
-  description: "",
-  images: [],
-});
-
-export const feedbackFormState = atomWithReset<Feedback>({
-  title: "",
-  description: "",
-  images: [],
-  category: "",
-});
+  departmentId?: number;
+  date?: string;
+  session?: Session;
+  reason?: string;
+}>({});
 
 /**
- * Miscellaenous
+ * Lịch hẹn, số thứ tự, hoá đơn, thông báo — tất cả khoá theo hồ sơ
+ */
+export const appointmentsState = atomFamily((patientId: number) =>
+  atomWithRefresh(async () => api.appointments({ patientId }))
+);
+
+export const appointmentByIdState = atomFamily((id: number) =>
+  atomWithRefresh(async () => api.appointment(id))
+);
+
+export const queueState = atomFamily((patientId: number) =>
+  atomWithRefresh(async () => api.queue({ patientId }))
+);
+
+export const invoicesState = atomFamily((patientId: number) =>
+  atom(async () => api.invoices({ patientId }))
+);
+
+export const notificationsState = atomFamily((patientId: number) =>
+  atom(async () => api.notifications({ patientId }))
+);
+
+/**
+ * Linh tinh
  */
 export const customTitleState = atom("");
