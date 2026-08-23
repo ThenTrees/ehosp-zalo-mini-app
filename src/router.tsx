@@ -28,14 +28,20 @@ const router = createBrowserRouter(
         {
           path: "/profiles",
           element: <ProfilesPage />,
-          handle: { back: true, title: "Hồ sơ của tôi" },
+          // `back` đi kèm `tab`: header có nút quay lại (người dùng thường tới
+          // đây từ lời chào ở Trang chủ) nhưng thanh tab vẫn còn.
+          handle: { tab: true, back: true },
         },
         {
           path: "/booking/:step?",
           element: <BookingPage />,
           handle: { back: true, title: "Đặt lịch khám" },
         },
-        { path: "/appointments", element: <AppointmentsPage /> },
+        {
+          path: "/appointments",
+          element: <AppointmentsPage />,
+          handle: { tab: true },
+        },
         {
           path: "/appointments/:id",
           element: <AppointmentDetailPage />,
@@ -49,7 +55,7 @@ const router = createBrowserRouter(
         {
           path: "/invoices",
           element: <InvoicesPage />,
-          handle: { back: true, title: "Hóa đơn" },
+          handle: { tab: true },
         },
         {
           path: "/invoices/:id/qr",
@@ -66,7 +72,7 @@ const router = createBrowserRouter(
       ErrorBoundary,
     },
   ],
-  { basename: getBasePath() }
+  { basename: getBasePath() },
 );
 
 export function getBasePath() {

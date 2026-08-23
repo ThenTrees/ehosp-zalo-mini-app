@@ -15,7 +15,7 @@ export default function Layout() {
   }, [hydrate]);
 
   return (
-    <div className="w-screen h-screen flex flex-col bg-background text-foreground overflow-hidden">
+    <div className="flex h-screen w-screen flex-col overflow-hidden bg-background text-ink">
       <Header />
       <Page />
       <Footer />
