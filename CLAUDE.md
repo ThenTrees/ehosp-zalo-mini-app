@@ -77,10 +77,17 @@ Route GĐ1: `/`, `/link`, `/profiles`, `/booking/:step?`, `/appointments`, `/app
 
 **Route `handle` điều khiển phần khung.** Đọc bằng `useRouteHandle()` (`src/hooks.ts`):
 
+- **không cờ nào** — Header lời chào ("Xin chào, <tên hồ sơ>" + chuông) và thanh tab. Chỉ Trang chủ dùng.
+- `tab: true` — Header gọn (tên phòng khám + chuông), thanh tab hiện; tên trang do trang tự vẽ bằng `PageHeading`. Dùng cho `/appointments`, `/invoices`, `/profiles`.
 - `back: true` — Header hiện nút quay lại + `title`, và thanh tab dưới bị ẩn hoàn toàn.
+- `tab` **+** `back` cùng lúc — thanh tab vẫn hiện, header thêm nút quay lại và bỏ tên phòng khám cho đủ chỗ. `/profiles` dùng tổ hợp này vì người dùng hay tới đó từ lời chào ở Trang chủ. Vì vậy `Footer` kiểm tra `handle.back && !handle.tab`.
 - `title: "custom"` — Header hiện giá trị atom `customTitleState` (đặt bởi `src/pages/appointments/detail.tsx` lúc mount, khôi phục lúc unmount).
 - `noScroll: true` — `Page` dùng `overflow-hidden` thay `overflow-y-auto`.
 - `scrollRestoration: <px>` — ép một mức cuộn cố định.
+
+Thanh tab có bốn mục (Trang chủ · Lịch hẹn · Hoá đơn · Hồ sơ) trong lưới 5 cột, cột giữa để trống cho nút "+" tròn nổi dẫn tới `/booking`. Số thứ tự không có tab riêng — nó là thẻ trạng thái đầu Trang chủ.
+
+Lời chào và chuông ở Header đọc dữ liệu người bệnh nhưng Header nằm **ngoài** `ErrorBoundary` của route, nên cả hai phải bọc trong `SilentBoundary` + `Suspense` (`src/components/silent-boundary.tsx`). Không bọc thì một lỗi mạng ở phần trang trí sẽ rơi vào trang 404 và đá người dùng lùi một bước lịch sử.
 
 Thêm trang: tạo `src/pages/<name>/index.tsx` xuất component `*Page`, đăng ký trong `router.tsx` với `handle` phù hợp, tách phần của trang thành tệp anh em cùng thư mục.
 
@@ -96,7 +103,10 @@ Thêm trang: tạo `src/pages/<name>/index.tsx` xuất component `*Page`, đăng
 ## Configuration and theming
 
 - `app-config.json` — `title` (render ở Header qua `getConfig(c => c.app.title)`), status bar, cờ safe-area. `.vscode/settings.json` mang JSON schema; schema chỉ bắt buộc `template.name` nên `template.oaID` đã được gỡ (GĐ1 không có nút chat OA).
-- `src/css/app.scss` — năm biến chủ đề (`--primary`, `--primary-gradient`, `--highlight`, `--background`, `--disabled`), các ghi đè `--zaui-*`, và inset `--safe-top`/`--safe-bottom`. Đổi `--primary` là đổi chủ đề toàn app.
-- `tailwind.config.js` ánh xạ các biến CSS đó thành màu Tailwind (`bg-background`, `text-primary`, ...), phơi safe area thành thang `st`/`sb` (`pt-st`, `pb-sb`), và ghi đè toàn bộ thang `fontSize` sang cỡ mobile (`text-base` là **15px**, không phải 16px). Dark mode theo selector `[zaui-theme="dark"]`.
-- Tìm kiếm tiếng Việt phải đi qua `toLowerCaseNonAccentVietnamese()` trong `src/utils/miscellaneous.tsx`; tiền và ngày qua `src/utils/format.ts` (`formatPrice` render VND).
+- Chủ đề là bộ design **"Clinical Clarity"** (Stitch, `stitch_tr_l_y_t_zalo/clinical_clarity/DESIGN.md` — ngoài kho mã). Font là font hệ thống, không nhúng Inter.
+- `src/css/app.scss` — nguồn duy nhất của màu: xanh lâm sàng (`--primary` `#0066ff`, `--primary-ink`, `--primary-soft`), bề mặt (`--background`, `--surface`, `--surface-sunken`), chữ và kẻ (`--ink`, `--ink-muted`, `--line`, `--line-strong`), trạng thái (`--success`/`--warning`/`--error` mỗi cái kèm một bản `-soft`). `--ink-muted` là chữ phụ; `--disabled` chỉ còn nghĩa vô hiệu thật. Kèm ghi đè `--zaui-*` và inset `--safe-top`/`--safe-bottom`.
+- `tailwind.config.js` ánh xạ các biến đó thành lớp Tailwind (`bg-surface`, `text-ink-muted`, `border-line`, ...), phơi safe area thành thang `st`/`sb`, và đặt thang chữ + bo góc theo đúng con số của design: `text-base` là **16px**, `rounded-md` là 12px, `rounded-xl` là **24px** (khác mặc định Tailwind). Bóng: `shadow-card`, `shadow-overlay`, `shadow-action`. Dark mode theo selector `[zaui-theme="dark"]`.
+- Tailwind **không** pha được alpha cho màu khai bằng biến CSS — `bg-primary-soft/40` không chạy, chọn token khác.
+- Bộ UI dùng chung ở `src/components/ui/` (`Card`, `StatusChip`, `SectionHeader`, `Segmented`, `ListRow`, `QuickActions`, `PageHeading`, `EmptyState`), nút ở `src/components/button.tsx` (`fullWidth={false}` cho nút hẹp, không dùng `w-auto`), icon gom trong `src/components/icons/index.tsx`.
+- Tìm kiếm tiếng Việt phải đi qua `toLowerCaseNonAccentVietnamese()` trong `src/utils/miscellaneous.tsx`; tiền và ngày qua `src/utils/format.ts` (`formatPrice` render `1.450.000đ`; `formatIsoDate`/`formatIsoDateLong`/`todayIso` tự tách chuỗi `YYYY-MM-DD` thay vì `new Date(iso)`, vì hàm dựng đó hiểu chuỗi chỉ có ngày là nửa đêm UTC).
 - `browserslist` nhắm tới Chrome 49 / iOS 9.3, và `lib` trong `tsconfig.json` cố ý dừng ở `es2017` — đừng nới nó ra chỉ để dùng một API mới.

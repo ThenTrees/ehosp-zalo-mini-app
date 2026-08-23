@@ -1,53 +1,80 @@
+import { useState } from "react";
 import { useAtomValue } from "jotai";
-import { useNavigate } from "react-router-dom";
 import LinkRequired from "@/components/link-required";
+import { CalendarIcon } from "@/components/icons";
+import { EmptyState, PageHeading, Segmented } from "@/components/ui";
+import AppointmentCard from "./appointment-card";
 import { activePatientIdState, appointmentsState } from "@/state";
-import type { AppointmentStatus } from "@/types";
+import { todayIso } from "@/utils/format";
 
-const NHAN_TRANG_THAI: Record<AppointmentStatus, string> = {
-  Scheduled: "Đã đặt",
-  CheckedIn: "Đã đến",
-  Completed: "Đã khám",
-  Cancelled: "Đã huỷ",
-  Missed: "Lỡ hẹn",
-  WaitListed: "Chờ chỗ trống",
-};
+type Lat = "SAP_TOI" | "DA_QUA";
 
 export default function AppointmentsPage() {
-  const navigate = useNavigate();
   const patientId = useAtomValue(activePatientIdState);
   const appointments = useAtomValue(appointmentsState(patientId));
+  const [lat, setLat] = useState<Lat>("SAP_TOI");
 
   if (patientId === null) {
     return <LinkRequired loiNhan="Liên kết hồ sơ để xem lịch hẹn của bạn." />;
   }
 
-  if (appointments.length === 0) {
-    return <div className="p-4 text-disabled">Bạn chưa có lịch hẹn nào.</div>;
-  }
+  const homNay = todayIso();
+  // "Sắp tới" là những hẹn còn hiệu lực và chưa qua ngày; mọi thứ khác — đã
+  // khám, đã huỷ, lỡ hẹn, hoặc quá ngày — nằm ở nhánh "Đã qua".
+  const conHieuLuc = (status: string) =>
+    status === "Scheduled" || status === "WaitListed" || status === "CheckedIn";
+
+  const sapToi = appointments
+    .filter((hen) => conHieuLuc(hen.status) && hen.apptDate >= homNay)
+    .sort((a, b) => a.apptDate.localeCompare(b.apptDate));
+
+  const daQua = appointments
+    .filter((hen) => !(conHieuLuc(hen.status) && hen.apptDate >= homNay))
+    .sort((a, b) => b.apptDate.localeCompare(a.apptDate));
+
+  const danhSach = lat === "SAP_TOI" ? sapToi : daQua;
 
   return (
-    <div className="p-4 space-y-3">
-      {appointments.map((hen) => (
-        <button
-          key={hen.id}
-          onClick={() =>
-            navigate(`/appointments/${hen.id}`, { viewTransition: true })
+    <div>
+      <PageHeading
+        title="Lịch hẹn của tôi"
+        subtitle="Theo dõi và xác nhận các lịch khám đã đặt."
+      />
+
+      <div className="px-4">
+        <Segmented
+          value={lat}
+          onChange={(gia) => setLat(gia)}
+          options={[
+            { value: "SAP_TOI", label: "Sắp tới", count: sapToi.length },
+            { value: "DA_QUA", label: "Đã qua", count: daQua.length },
+          ]}
+        />
+      </div>
+
+      {danhSach.length === 0 ? (
+        <EmptyState
+          icon={CalendarIcon}
+          title={
+            lat === "SAP_TOI"
+              ? "Chưa có lịch hẹn sắp tới"
+              : "Chưa có lịch hẹn cũ"
           }
-          className="w-full text-left p-3 rounded-xl bg-white"
-        >
-          <div className="flex justify-between">
-            <span className="font-medium">{hen.department.name}</span>
-            <span className="text-2xs text-primary">
-              {NHAN_TRANG_THAI[hen.status]}
-            </span>
-          </div>
-          <div className="text-2xs text-disabled">
-            {hen.apptDate} · {hen.session === "SANG" ? "Buổi sáng" : "Buổi chiều"}{" "}
-            · Mã {hen.appointmentCode}
-          </div>
-        </button>
-      ))}
+          hint={
+            lat === "SAP_TOI"
+              ? "Đặt lịch trước để khỏi phải chờ lấy số tại quầy tiếp đón."
+              : "Những lịch hẹn đã khám xong hoặc đã huỷ sẽ được lưu ở đây."
+          }
+          actionLabel={lat === "SAP_TOI" ? "Đặt lịch khám" : undefined}
+          actionTo="/booking"
+        />
+      ) : (
+        <div className="space-y-3 p-4">
+          {danhSach.map((hen) => (
+            <AppointmentCard key={hen.id} hen={hen} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

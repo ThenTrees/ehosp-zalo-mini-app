@@ -3,7 +3,7 @@ import { UIMatch, useMatches } from "react-router-dom";
 
 export function useRealHeight(
   element: MutableRefObject<HTMLDivElement | null>,
-  defaultValue?: number
+  defaultValue?: number,
 ) {
   const [height, setHeight] = useState(defaultValue ?? 0);
   useLayoutEffect(() => {
@@ -29,7 +29,10 @@ export function useRouteHandle() {
     undefined,
     {
       title?: string;
+      /** Header có nút quay lại + tiêu đề, và thanh tab bị ẩn. */
       back?: boolean;
+      /** Trang nằm trên thanh tab: header gọn (tên app + chuông), tab hiện. */
+      tab?: boolean;
       scrollRestoration?: number;
       noScroll?: boolean;
     }

@@ -1,15 +1,49 @@
+/**
+ * Chủ đề "Clinical Clarity" — nguồn gốc ở bộ design Stitch, tệp DESIGN.md.
+ *
+ * Đây là chỗ duy nhất định nghĩa màu. `tailwind.config.js` chỉ ánh xạ các biến
+ * này thành lớp tiện ích; không viết mã màu thẳng vào trang.
+ */
 :root {
-  --primary: #00abbb;
-  --primary-gradient: #00bead;
-  --highlight: #01bdaf1a;
-  --background: #f2f9f9;
-  --disabled: #9a9a9a;
+  /* Xanh lâm sàng — hành động, điều hướng đang chọn, nhấn mạnh */
+  --primary: #0066ff;
+  /* Đậm hơn một bậc, dùng cho chữ và icon xanh nằm trên nền sáng */
+  --primary-ink: #0050cb;
+  /* Nền xanh nhạt cho ô icon, chip, vùng nhấn */
+  --primary-soft: #dce9ff;
+  --primary-gradient: #0050cb;
+
+  /* Bề mặt */
+  --background: #f8f9ff;
+  --surface: #ffffff;
+  --surface-sunken: #eff4ff;
+
+  /* Chữ và đường kẻ */
+  --ink: #0b1c30;
+  --ink-muted: #424656;
+  --line: #e2e8f0;
+  --line-strong: #c2c6d8;
+
+  /* Trạng thái. Mỗi cặp gồm màu chữ và nền nhạt tương ứng. */
+  --success: #00843a;
+  --success-soft: #e6f6ec;
+  --warning: #b45309;
+  --warning-soft: #fef3c7;
+  --error: #ba1a1a;
+  --error-soft: #ffe6e2;
+
+  /* Thật sự vô hiệu — không dùng cho chữ phụ, chữ phụ là --ink-muted */
+  --disabled: #9aa1ae;
+  /* Bóng xanh rất nhạt dưới các nút chính */
+  --highlight: #0066ff1a;
 
   --zaui-light-body-background-color: var(--background);
-  --zaui-light-input-border-color: rgba(0, 0, 0, 0.1);
+  --zaui-light-text-color: var(--ink);
+  --zaui-light-input-border-color: var(--line);
   --zaui-light-input-hover-border-color: var(--primary);
   --zaui-light-option-selected-color: var(--primary);
   --zaui-light-radio-checked-background: var(--primary);
+  --zaui-light-primary-color: var(--primary);
 
   --safe-top: var(--zaui-safe-area-inset-top, env(safe-area-inset-top, 30px));
   --safe-bottom: max(
@@ -18,29 +52,50 @@
   );
 }
 
+/**
+ * Font hệ thống. Design chỉ định Inter; ta không nhúng font vì máy người dùng
+ * đã có sẵn một font sans hiển thị dấu tiếng Việt tốt hơn bất kỳ thứ gì tải về
+ * qua mạng 3G, và bundle của mini app càng nhẹ càng mở nhanh.
+ */
+body {
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+  color: var(--ink);
+  background: var(--background);
+  -webkit-font-smoothing: antialiased;
+}
+
 :not(input):not(textarea) {
   -webkit-user-select: none;
   user-select: none;
 }
 
-.zaui-select {
-  &.zaui-input-affix-wrapper,
-  .zaui-input-affix-wrapper {
-    border-radius: 100px;
+/**
+ * Ô nhập theo design: cao 48px, bo 8px, viền 1px; khi focus viền dày lên và
+ * chuyển sang xanh. Nhãn luôn hiện phía trên, không phải nhãn nổi.
+ */
+.zaui-input-affix-wrapper {
+  border-radius: 8px;
+  min-height: 48px;
+
+  &:focus-within {
+    border-width: 2px;
+    border-color: var(--primary);
   }
 }
 
 .zaui-input-textarea-affix-wrapper {
   &.zaui-input-affix-wrapper {
-    border: none;
+    border: 1px solid var(--line);
   }
 
   .zaui-input-show-count-suffix {
-    border-radius: 10px;
-    background: #f3f3f3;
+    border-radius: 8px;
+    background: var(--surface-sunken);
     padding: 2px 6px;
-    font-size: 10px;
-    color: #656565;
+    font-size: 11px;
+    color: var(--ink-muted);
   }
 
   .zaui-input-textarea ~ .zaui-input-suffix .zaui-input-show-count-suffix {
@@ -51,4 +106,19 @@
 
 .zaui-sheet-content {
   max-height: calc(100vh - 200px);
+}
+
+/* Toast nằm trên thanh tab, không bị nút "+" che */
+.toast-container {
+  bottom: calc(var(--safe-bottom) + 76px) !important;
+}
+
+/* Dải cuộn ngang (chọn ngày khám) — ẩn thanh cuộn, vuốt vẫn chạy. */
+.an-thanh-cuon {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }

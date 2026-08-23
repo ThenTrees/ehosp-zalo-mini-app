@@ -30,12 +30,36 @@ describe("session", () => {
   });
 
   it("lưu rồi đọc lại được nguyên vẹn", async () => {
-    await saveSession({ token: "abc123", activePatientId: 42 });
-    expect(await loadSession()).toEqual({ token: "abc123", activePatientId: 42 });
+    await saveSession({
+      token: "abc123",
+      activePatientId: 42,
+      notificationsSeenAt: "2026-08-22T03:00:00.000Z",
+    });
+    expect(await loadSession()).toEqual({
+      token: "abc123",
+      activePatientId: 42,
+      notificationsSeenAt: "2026-08-22T03:00:00.000Z",
+    });
+  });
+
+  it("phiên cũ chưa có mốc đọc thông báo vẫn nạp được", async () => {
+    store["patient_app_session"] = JSON.stringify({
+      token: "abc123",
+      activePatientId: 42,
+    });
+    expect(await loadSession()).toEqual({
+      token: "abc123",
+      activePatientId: 42,
+      notificationsSeenAt: null,
+    });
   });
 
   it("xoá phiên thì đọc lại ra null", async () => {
-    await saveSession({ token: "abc123", activePatientId: 42 });
+    await saveSession({
+      token: "abc123",
+      activePatientId: 42,
+      notificationsSeenAt: null,
+    });
     await clearSession();
     expect(await loadSession()).toBeNull();
   });

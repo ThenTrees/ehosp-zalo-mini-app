@@ -1,32 +1,50 @@
-import { startViewTransition } from "@/utils/miscellaneous";
-import React, {
-  ButtonHTMLAttributes,
-  FC,
-  MouseEvent,
-  ReactNode,
-  useEffect,
-  useState,
-} from "react";
+import { ButtonHTMLAttributes, FC, MouseEvent, ReactNode } from "react";
+
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
+  variant?: ButtonVariant;
   loading?: boolean;
+  /**
+   * Mặc định nút chiếm hết bề ngang. Đặt `false` cho nút nằm cạnh nội dung
+   * khác — thêm `w-auto` qua `className` không ăn thua vì `w-full` và `w-auto`
+   * cùng độ đặc hiệu và Tailwind xuất `w-full` sau.
+   */
+  fullWidth?: boolean;
   onDisabledClick?: () => void;
 }
 
+/**
+ * Nút theo design: cao tối thiểu 48px, bo 8px.
+ *
+ * - `primary` nền xanh đặc, chữ trắng.
+ * - `secondary` nền xanh nhạt, chữ xanh đậm.
+ * - `danger` nền đỏ nhạt, chữ đỏ — cho huỷ lịch, huỷ liên kết.
+ * - `ghost` không nền, chỉ chữ xanh.
+ */
+const KIEU: Record<ButtonVariant, string> = {
+  primary: "bg-primary text-white shadow-action active:bg-primary-ink",
+  secondary: "bg-primary-soft text-primary-ink active:bg-[#cddffd]",
+  danger: "bg-error-soft text-error active:bg-[#ffd6d0]",
+  ghost: "text-primary-ink active:bg-surface-sunken",
+};
+
 export const Button: FC<ButtonProps> = ({
   children,
-  className,
+  className = "",
+  variant = "primary",
   loading,
+  fullWidth = true,
   disabled,
   onDisabledClick,
   onClick,
   ...props
 }) => {
   const handleClick = (e: MouseEvent<HTMLButtonElement>) => {
-    if (disabled && onDisabledClick) {
-      onDisabledClick();
+    if (disabled) {
       e.preventDefault();
+      onDisabledClick?.();
       return;
     }
     if (loading) {
@@ -38,21 +56,24 @@ export const Button: FC<ButtonProps> = ({
 
   return (
     <button
-      className={`relative overflow-hidden bg-gradient-to-br from-primary to-primary-gradient shadow shadow-highlight flex w-full h-12 p-3 justify-center items-center text-white text-lg rounded-full active:scale-95 ${className || ""}`}
+      type="button"
+      className={`relative flex min-h-12 items-center justify-center gap-2 rounded px-4 text-base font-semibold transition-transform active:scale-[0.98] disabled:opacity-40 disabled:shadow-none ${
+        fullWidth ? "w-full" : "w-auto shrink-0"
+      } ${KIEU[variant]} ${className}`}
       onClick={handleClick}
+      disabled={disabled}
       {...props}
     >
-      {(loading || disabled) && (
-        <div className="bg-[#E1E1E1CC] absolute inset-0 pointer-events-none" />
+      <span className={loading ? "opacity-0" : "flex items-center gap-2"}>
+        {children}
+      </span>
+      {loading && (
+        <span className="absolute inset-0 flex items-center justify-center">
+          <span className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+        </span>
       )}
-      <div className="relative w-full h-full flex items-center justify-center">
-        <div className={`${loading ? "opacity-0" : ""}`}>{children}</div>
-        {loading && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="spinner w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          </div>
-        )}
-      </div>
     </button>
   );
 };
+
+export default Button;
