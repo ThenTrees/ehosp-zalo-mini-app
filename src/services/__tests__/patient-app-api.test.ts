@@ -45,7 +45,7 @@ describe("createHttpApi", () => {
 
     await api.departments();
 
-    expect(callOf(spy)[1].headers.Authorization).toBeUndefined();
+    expect(callOf(spy)[1].headers["X-Patient-Session"]).toBeUndefined();
   });
 
   it("lấy token mới ở mỗi lời gọi, không giữ bản sao cũ", async () => {
@@ -57,9 +57,9 @@ describe("createHttpApi", () => {
     token = "sau-khi-lien-ket";
     await api.me();
 
-    expect(callOf(spy, 0)[1].headers.Authorization).toBeUndefined();
-    expect(callOf(spy, 1)[1].headers.Authorization).toBe(
-      "Bearer sau-khi-lien-ket"
+    expect(callOf(spy, 0)[1].headers["X-Patient-Session"]).toBeUndefined();
+    expect(callOf(spy, 1)[1].headers["X-Patient-Session"]).toBe(
+      "sau-khi-lien-ket"
     );
   });
 

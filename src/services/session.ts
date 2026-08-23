@@ -3,7 +3,7 @@ import { getStorage, setStorage, removeStorage } from "zmp-sdk";
 const STORAGE_KEY = "patient_app_session";
 
 export interface StoredSession {
-  /** Token Bearer của phiên app. Không bao giờ đưa vào URL. */
+  /** Mã phiên app, gửi qua header X-Patient-Session. Không bao giờ đưa vào URL. */
   token: string;
   /** Hồ sơ người bệnh đang xem; null khi chưa chọn. */
   activePatientId: number | null;

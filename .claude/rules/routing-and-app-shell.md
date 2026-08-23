@@ -15,7 +15,7 @@ paths:
 
 `src/router.tsx` defines a single `createBrowserRouter` tree: one `Layout` route with every page as a child, plus a route-level `ErrorBoundary`. The basename is computed by `getBasePath()` — in production or when `?env=TESTING*/DEVELOPMENT` it becomes `/zapps/${window.APP_ID}`, otherwise `window.BASE_PATH`.
 
-`Layout` (`src/components/layout.tsx`) is a fixed `h-screen` column: `Header` / `Page` (the scrollable `<Outlet />` in a `Suspense`) / `Footer` / `Toaster` / `ScrollRestoration`. It also calls `hydrateSessionState` once on mount — that is what restores the saved Bearer session, the active patient profile, and the "đã xem thông báo" mark when the mini app reopens.
+`Layout` (`src/components/layout.tsx`) is a fixed `h-screen` column: `Header` / `Page` (the scrollable `<Outlet />` in a `Suspense`) / `Footer` / `Toaster` / `ScrollRestoration`. It also calls `hydrateSessionState` once on mount — that is what restores the saved patient session, the active patient profile, and the "đã xem thông báo" mark when the mini app reopens.
 
 ## Routes (giai đoạn 1)
 

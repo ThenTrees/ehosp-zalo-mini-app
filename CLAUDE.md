@@ -45,8 +45,8 @@ npm run deploy       # zmp deploy -> publish lên Zalo, output vào www/
 | Tệp | Việc |
 |---|---|
 | `config.ts` | Đọc `import.meta.env` thành `RuntimeConfig` |
-| `session.ts` | Lưu/đọc/xoá phiên Bearer qua kho lưu trữ `zmp-sdk` |
-| `http.ts` | `fetch` + header Bearer + `ApiError`; `buildUrl` **ném lỗi** nếu ai đó đưa `code`/`token` vào query string |
+| `session.ts` | Lưu/đọc/xoá phiên người bệnh qua kho lưu trữ `zmp-sdk` |
+| `http.ts` | `fetch` + header `X-Patient-Session` + `ApiError`; `buildUrl` **ném lỗi** nếu ai đó đưa `code`/`token` vào query string |
 | `patient-app-api.ts` | `interface PatientAppApi` — hợp đồng §6 của spec — và cài đặt HTTP thật |
 | `fake/` | Cài đặt giả cùng interface, mô phỏng cả quota 30% và luật tối đa 2 lịch hẹn đang mở |
 | `index.ts` | Chọn thật/giả theo `VITE_USE_FAKE`, giữ token hiện hành |
