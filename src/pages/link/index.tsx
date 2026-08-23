@@ -1,9 +1,9 @@
 import { ReactNode, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSetAtom } from "jotai";
-import { getPhoneNumber } from "zmp-sdk";
 import toast from "react-hot-toast";
 import { api } from "@/services";
+import { layTokenSoDienThoai } from "@/services/phone";
 import { applyLinkState } from "@/state";
 import { Button } from "@/components/button";
 import { AlertCircleIcon, ShieldIcon } from "@/components/icons";
@@ -55,9 +55,9 @@ export default function LinkPage() {
   async function batDau() {
     setLoi("");
     try {
-      const { token } = await getPhoneNumber();
-      setPhoneToken(token ?? "");
-      await gui(token ?? "");
+      const token = await layTokenSoDienThoai();
+      setPhoneToken(token);
+      await gui(token);
     } catch {
       setLoi("Cần cho phép truy cập số điện thoại để liên kết hồ sơ.");
     }
