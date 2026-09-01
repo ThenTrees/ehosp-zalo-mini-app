@@ -13,15 +13,19 @@ export const runtimeConfig = readRuntimeConfig({
   VITE_USE_FAKE: import.meta.env.VITE_USE_FAKE,
 });
 
-/** Token Bearer hiện hành, do state.ts cập nhật sau khi liên kết. */
+/** Mã phiên hiện hành, do state.ts cập nhật sau khi liên kết. */
 let phienHienTai: string | null = null;
 
 export function setSessionToken(token: string | null): void {
   phienHienTai = token;
 }
 
-export const api: PatientAppApi = runtimeConfig.useFake
-  ? createFakeApi()
-  : createHttpApi(runtimeConfig.apiBaseUrl, () => phienHienTai);
+function chonApi(): PatientAppApi {
+  return runtimeConfig.cheDo === "fake"
+    ? createFakeApi()
+    : createHttpApi(runtimeConfig.apiBaseUrl, () => phienHienTai);
+}
+
+export const api: PatientAppApi = chonApi();
 
 export type { PatientAppApi };

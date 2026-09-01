@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
 import { useResetAtom } from "jotai/utils";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -18,7 +18,7 @@ import { formatIsoDateLong, tenBuoi } from "@/utils/format";
 
 export default function Step3({ onBack }: { onBack: () => void }) {
   const navigate = useNavigate();
-  const [form, setForm] = useAtom(bookingFormState);
+  const form = useAtomValue(bookingFormState);
   const resetForm = useResetAtom(bookingFormState);
   const departments = useAtomValue(departmentsState);
   const profile = useAtomValue(activeProfileState);
@@ -42,7 +42,6 @@ export default function Step3({ onBack }: { onBack: () => void }) {
         departmentId: form.departmentId,
         date: form.date,
         session: form.session,
-        reason: form.reason,
       });
       refreshAppointments();
       resetForm();
@@ -83,24 +82,6 @@ export default function Step3({ onBack }: { onBack: () => void }) {
           cuoi
         />
       </Card>
-
-      <div>
-        <label
-          htmlFor="ly-do-kham"
-          className="mb-1.5 block text-sm font-medium text-ink"
-        >
-          Lý do khám <span className="text-ink-muted">(không bắt buộc)</span>
-        </label>
-        <textarea
-          id="ly-do-kham"
-          rows={3}
-          maxLength={200}
-          value={form.reason ?? ""}
-          onChange={(e) => setForm((f) => ({ ...f, reason: e.target.value }))}
-          placeholder="Ví dụ: tái khám theo hẹn, đau đầu kéo dài…"
-          className="w-full resize-none rounded border border-line bg-surface p-3 text-base text-ink outline-none placeholder:text-ink-muted focus:border-2 focus:border-primary"
-        />
-      </div>
 
       {loi && (
         <div className="flex gap-3 rounded-md bg-error-soft p-4">

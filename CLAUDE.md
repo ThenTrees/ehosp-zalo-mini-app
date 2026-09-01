@@ -8,9 +8,11 @@ Zalo Mini App (ZMP) cho **người bệnh** của phòng khám phường Sài G�
 
 React 18 + TypeScript + Vite 5, UI từ `zmp-ui`, state bằng Jotai, styling bằng Tailwind + SCSS. Toàn bộ chữ hiển thị cho người dùng là **tiếng Việt**. Khởi đầu từ template ZaUI Doctor, nay đã cắt bỏ phần lớn.
 
-**Phạm vi giai đoạn 1:** liên kết tài khoản, đặt lịch khám, lịch hẹn của tôi, số thứ tự, hoá đơn + mã thanh toán, thông báo trạng thái.
+**Phạm vi giai đoạn 1:** liên kết tài khoản, đặt lịch khám, lịch hẹn của tôi, số thứ tự, lịch sử khám (lượt khám + đơn thuốc, **chỉ trạng thái**), hoá đơn + mã thanh toán.
 
-**Cố ý KHÔNG làm — đây là ràng buộc quan trọng nhất của dự án:** mini app không hiển thị nội dung lâm sàng. Không chẩn đoán, không kết quả xét nghiệm, không tên thuốc, không bệnh án. Sổ sức khoẻ điện tử trên VNeID đã làm việc đó và có giá trị pháp lý tương đương bản giấy (QĐ 31/QĐ-BYT, 06/01/2026); phòng khám bắt buộc phải đồng bộ dữ liệu vào đó. Tự xây màn hình xem bệnh án là làm bản kém hơn thứ người bệnh đã có trong túi, kèm toàn bộ rủi ro riêng tư. `src/services/__tests__/khong-lam-sang.test.ts` canh chừng điều này tự động.
+**Cố ý KHÔNG làm — đây là ràng buộc quan trọng nhất của dự án:** mini app không hiển thị **nội dung** lâm sàng. Không chẩn đoán, không kết quả xét nghiệm, không tên thuốc, không liều dùng. Sổ sức khoẻ điện tử trên VNeID đã làm việc đó và có giá trị pháp lý tương đương bản giấy (QĐ 31/QĐ-BYT, 06/01/2026); phòng khám bắt buộc phải đồng bộ dữ liệu vào đó. Tự xây màn hình xem bệnh án là làm bản kém hơn thứ người bệnh đã có trong túi, kèm toàn bộ rủi ro riêng tư.
+
+Ranh giới chính xác, chốt ngày 2026-08-30: màn **Lịch sử khám** (`/records`) hiện *ngày, khoa, mã lượt khám, trạng thái* của từng lần khám và *mã đơn, ngày kê, trạng thái phát thuốc* của từng đơn thuốc — không hơn. Trang cố ý **không tên là "Bệnh án"**: gọi vậy là hứa một thứ nó không có. `src/services/__tests__/khong-lam-sang.test.ts` canh chừng bằng một danh sách trắng các trường được phép, chặt hơn danh sách từ cấm trước đây.
 
 Tài liệu: spec ở `docs/superpowers/specs/2026-08-22-zalo-mini-app-gd1-design.md`, kế hoạch ở `docs/superpowers/plans/`, thiết kế mô-đun gốc ở `eHosp/docs/09-THIET-KE-DICH-VU/12-MOBILE-APP.md`.
 
@@ -32,6 +34,39 @@ npm run deploy       # zmp deploy -> publish lên Zalo, output vào www/
 
 `zmp start`/`zmp deploy` cần [Zalo Mini App CLI](https://mini.zalo.me/docs/dev-tools/cli/intro/) cùng `APP_ID`/`ZMP_TOKEN` trong `.env` (gitignored; xem `.env.example`). README ghi Vite 5 chưa được CLI và Zalo Mini App Studio hỗ trợ đầy đủ — đường phát triển được hỗ trợ là **Zalo Mini App Extension** của VS Code (Run panel > Start). `www/` là kết quả build; không bao giờ sửa tay.
 
+
+## Đối chiếu với emr-api thật
+
+`npm test` chạy trên tầng dữ liệu giả và **không** cần máy chủ. Bên cạnh đó có
+một bộ đối chiếu chỉ chạy khi được cấp máy chủ + phiên thật —
+`src/services/__tests__/doi-chieu-that.test.ts`, tự bỏ qua khi thiếu biến môi
+trường, nên nó không làm hỏng CI.
+
+```bash
+EMR_API_URL=http://127.0.0.1:3010/api/patient-app \
+EMR_PATIENT_SESSION=<mã phiên> \
+EMR_PATIENT_ID=<mã hồ sơ> \
+npx vitest run src/services/__tests__/doi-chieu-that.test.ts
+```
+
+Bộ giả chỉ chứng minh mini app **gửi** đúng thứ nó định gửi; bộ này chứng minh
+máy chủ **trả về** đúng hình dạng hợp đồng — đúng loại lệch đã tìm thấy ngày
+2026-08-30 (`date` vs `apptDate`, `confirmed` vs `patientConfirmed`).
+
+Dựng máy chủ để chạy nó, không cần OpenMRS hay OpenELIS:
+
+```bash
+cd d:/projects/eHosp && docker compose up -d db          # chỉ MariaDB
+cd services/emr-api && DB_HOST=127.0.0.1 DB_PORT=3307 \
+  OPENMRS_OPTIONAL=true SEED_OPENMRS=false \
+  LIS_FHIR_URL=http://127.0.0.1:9/fhir \
+  npx tsx src/index.ts
+```
+
+Cấp phiên mà không cần Zalo (`getPhoneNumber` chỉ chạy trong ứng dụng Zalo
+thật): chèn một dòng `emr_patient_app_link` và một dòng
+`emr_patient_app_session` với `sid_hash = SHA2('<mã phiên>', 256)`.
+
 ## Architecture
 
 **Entry chain:** `index.html` -> `src/app.ts` (mounts `RouterProvider`, imports `zaui.min.css` + `css/tailwind.scss` + `css/app.scss`, copies `app-config.json` onto `window.APP_CONFIG`) -> `src/router.tsx`.
@@ -45,22 +80,22 @@ npm run deploy       # zmp deploy -> publish lên Zalo, output vào www/
 | Tệp | Việc |
 |---|---|
 | `config.ts` | Đọc `import.meta.env` thành `RuntimeConfig` |
-| `session.ts` | Lưu/đọc/xoá phiên Bearer qua kho lưu trữ `zmp-sdk` |
-| `http.ts` | `fetch` + header Bearer + `ApiError`; `buildUrl` **ném lỗi** nếu ai đó đưa `code`/`token` vào query string |
+| `session.ts` | Lưu/đọc/xoá phiên người bệnh qua kho lưu trữ `zmp-sdk` |
+| `http.ts` | `fetch` + header `X-Patient-Session` + `ApiError`; `buildUrl` **ném lỗi** nếu ai đó đưa `code`/`token` vào query string |
 | `patient-app-api.ts` | `interface PatientAppApi` — hợp đồng §6 của spec — và cài đặt HTTP thật |
-| `fake/` | Cài đặt giả cùng interface, mô phỏng cả quota 30% và luật tối đa 2 lịch hẹn đang mở |
+| `fake/` | Cài đặt giả cùng interface, mô phỏng cả quota 30%, luật tối đa 2 lịch hẹn đang mở và chốt phạm vi hồ sơ |
 | `index.ts` | Chọn thật/giả theo `VITE_USE_FAKE`, giữ token hiện hành |
 
-Đổi sang back-end thật = đặt `VITE_USE_FAKE=false` và `VITE_API_BASE_URL` trong `.env`. Không sửa dòng mã nào.
+Đổi sang back-end thật = đặt `VITE_USE_FAKE=false` và `VITE_API_BASE_URL` trong `.env`. Không sửa dòng mã nào. Chỉ có **hai** chế độ; chế độ `hybrid` (trộn tuyến thật với tuyến giả) đã bị bỏ ngày 2026-08-30 khi mọi tuyến mini app cần đều đã có thật.
 
-Hai ràng buộc bảo mật đã được biến thành test chạy được: **không bí mật nào trong URL** (`http.test.ts`) và **không trường lâm sàng nào trong hợp đồng dữ liệu** (`khong-lam-sang.test.ts`).
+Ba ràng buộc đã được biến thành test chạy được: **không bí mật nào trong URL** (`http.test.ts`), **không trường lâm sàng nào trong hợp đồng dữ liệu** (`khong-lam-sang.test.ts`), và **client khớp từng tham số với `router.ts` của eHosp** (`patient-app-api.test.ts`).
 
 ### State (`src/state.ts`)
 
 Ranh giới duy nhất giữa UI và dữ liệu. Trang chỉ đọc atom.
 
 - Danh mục: atom async phẳng (`departmentsState`).
-- **Mọi atom đọc dữ liệu người bệnh là `atomFamily` khoá theo `patientId`** — chuyển hồ sơ người thân không được lẫn dữ liệu.
+- **Mọi atom đọc dữ liệu người bệnh là `atomFamily` khoá theo `patientId`** (`appointmentsState`, `queueState`, `visitsState`, `prescriptionsState`, `invoicesState`) — chuyển hồ sơ người thân không được lẫn dữ liệu. `appointmentByIdState` khoá theo **cả** `{ id, patientId }` vì máy chủ đối chiếu `patient_id` ở mọi tuyến đọc.
 - Cần làm mới sau khi ghi thì dùng `atomWithRefresh`, gọi setter không tham số.
 - Form nhiều bước: `atomWithReset` (`bookingFormState`).
 - `activePatientIdState` đọc ra `number | null`, ghi vào thì đồng thời lưu xuống kho lưu trữ; `hydrateSessionState` nạp lại lúc `Layout` mount.
@@ -71,23 +106,23 @@ Atom là promise, nên component tiêu thụ phải nằm dưới `Suspense` tro
 
 `src/router.tsx` là một cây `createBrowserRouter`: một route `Layout` với mọi trang là con, kèm `ErrorBoundary` ở mức route. `getBasePath()` tính basename — production hoặc `?env=TESTING*/DEVELOPMENT` thì thành `/zapps/${window.APP_ID}`.
 
-Route GĐ1: `/`, `/link`, `/profiles`, `/booking/:step?`, `/appointments`, `/appointments/:id`, `/queue`, `/invoices`, `/invoices/:id/qr`, `/notifications`.
+Route GĐ1: `/`, `/link`, `/profiles`, `/booking/:step?`, `/appointments`, `/appointments/:id`, `/queue`, `/records`, `/records/:visitId`, `/invoices`, `/invoices/:id/qr`.
 
 `:id` là khoá chính, **không bao giờ là mã hẹn** — mã hẹn là thông tin xác thực dạng bearer và không được nằm trong URL.
 
 **Route `handle` điều khiển phần khung.** Đọc bằng `useRouteHandle()` (`src/hooks.ts`):
 
-- **không cờ nào** — Header lời chào ("Xin chào, <tên hồ sơ>" + chuông) và thanh tab. Chỉ Trang chủ dùng.
-- `tab: true` — Header gọn (tên phòng khám + chuông), thanh tab hiện; tên trang do trang tự vẽ bằng `PageHeading`. Dùng cho `/appointments`, `/invoices`, `/profiles`.
+- **không cờ nào** — Header lời chào ("Xin chào, <tên hồ sơ>") và thanh tab. Chỉ Trang chủ dùng.
+- `tab: true` — Header gọn (tên phòng khám), thanh tab hiện; tên trang do trang tự vẽ bằng `PageHeading`. Dùng cho `/appointments`, `/invoices`, `/profiles`.
 - `back: true` — Header hiện nút quay lại + `title`, và thanh tab dưới bị ẩn hoàn toàn.
 - `tab` **+** `back` cùng lúc — thanh tab vẫn hiện, header thêm nút quay lại và bỏ tên phòng khám cho đủ chỗ. `/profiles` dùng tổ hợp này vì người dùng hay tới đó từ lời chào ở Trang chủ. Vì vậy `Footer` kiểm tra `handle.back && !handle.tab`.
-- `title: "custom"` — Header hiện giá trị atom `customTitleState` (đặt bởi `src/pages/appointments/detail.tsx` lúc mount, khôi phục lúc unmount).
+- `title: "custom"` — Header hiện giá trị atom `customTitleState` (đặt lúc mount bởi `src/pages/appointments/detail.tsx` và `src/pages/records/detail.tsx`, khôi phục lúc unmount).
 - `noScroll: true` — `Page` dùng `overflow-hidden` thay `overflow-y-auto`.
 - `scrollRestoration: <px>` — ép một mức cuộn cố định.
 
 Thanh tab có bốn mục (Trang chủ · Lịch hẹn · Hoá đơn · Hồ sơ) trong lưới 5 cột, cột giữa để trống cho nút "+" tròn nổi dẫn tới `/booking`. Số thứ tự không có tab riêng — nó là thẻ trạng thái đầu Trang chủ.
 
-Lời chào và chuông ở Header đọc dữ liệu người bệnh nhưng Header nằm **ngoài** `ErrorBoundary` của route, nên cả hai phải bọc trong `SilentBoundary` + `Suspense` (`src/components/silent-boundary.tsx`). Không bọc thì một lỗi mạng ở phần trang trí sẽ rơi vào trang 404 và đá người dùng lùi một bước lịch sử.
+Lời chào ở Header đọc dữ liệu người bệnh nhưng Header nằm **ngoài** `ErrorBoundary` của route, nên nó phải bọc trong `SilentBoundary` + `Suspense` (`src/components/silent-boundary.tsx`). Không bọc thì một lỗi mạng ở phần trang trí sẽ rơi vào trang 404 và đá người dùng lùi một bước lịch sử.
 
 Thêm trang: tạo `src/pages/<name>/index.tsx` xuất component `*Page`, đăng ký trong `router.tsx` với `handle` phù hợp, tách phần của trang thành tệp anh em cùng thư mục.
 

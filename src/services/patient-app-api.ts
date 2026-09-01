@@ -1,21 +1,25 @@
 import { request } from "./http";
 import type {
   Appointment,
-  AppNotification,
   CreateAppointmentInput,
   Department,
   InvoiceSummary,
   LinkInput,
   LinkResponse,
   PatientProfile,
+  PrescriptionSummary,
   QueueStatus,
   SlotAvailability,
   VietQrPayload,
+  VisitSummary,
 } from "@/types";
 
 /**
- * Hợp đồng API người bệnh — spec §6. Tầng giả và tầng thật cùng cài đặt
- * interface này, nên đổi giữa hai bên chỉ là đổi một biến môi trường.
+ * Hợp đồng API người bệnh — spec §6, đối chiếu từng dòng với
+ * `eHosp/services/emr-api/src/modules/patient-app/router.ts`.
+ *
+ * Tầng giả và tầng thật cùng cài đặt interface này, nên đổi giữa hai bên chỉ là
+ * đổi một biến môi trường.
  */
 export interface PatientAppApi {
   link(input: LinkInput): Promise<LinkResponse>;
@@ -27,23 +31,54 @@ export interface PatientAppApi {
   }): Promise<SlotAvailability[]>;
   createAppointment(input: CreateAppointmentInput): Promise<Appointment>;
   appointments(params: { patientId: number }): Promise<Appointment[]>;
-  appointment(id: number): Promise<Appointment>;
-  redeem(input: {
-    code: string;
-  }): Promise<{ token: string; appointmentId: number }>;
-  confirmAppointment(id: number): Promise<Appointment>;
-  cancelAppointment(id: number, reason: string): Promise<Appointment>;
+  appointment(params: { id: number; patientId: number }): Promise<Appointment>;
+  confirmAppointment(params: {
+    id: number;
+    patientId: number;
+  }): Promise<Appointment>;
+  cancelAppointment(params: {
+    id: number;
+    patientId: number;
+    reason: string;
+  }): Promise<Appointment>;
   queue(params: { patientId: number }): Promise<QueueStatus>;
+  visits(params: { patientId: number }): Promise<VisitSummary[]>;
+  prescriptions(params: { patientId: number }): Promise<PrescriptionSummary[]>;
   invoices(params: { patientId: number }): Promise<InvoiceSummary[]>;
   invoiceQr(id: number): Promise<VietQrPayload>;
-  notifications(params: { patientId: number }): Promise<AppNotification[]>;
   unlink(patientId: number): Promise<void>;
+}
+
+/**
+ * Khuôn trả về của các tuyến danh sách.
+ *
+ * `/appointments`, `/slots`, `/visits`, `/prescriptions` bọc kết quả trong
+ * `{ results: [...] }`; riêng `/invoices` trả mảng trần. Đó là hiện trạng của
+ * `router.ts`, không phải lựa chọn của mini app — nên chỗ duy nhất biết sự
+ * khác biệt ấy là hàm `boc()` ngay dưới đây.
+ */
+interface Boc<T> {
+  results: T[];
+}
+
+/**
+ * Bóc `{results}` mà vẫn chịu được mảng trần.
+ *
+ * Chấp nhận cả hai dạng chứ không khẳng định một dạng: nếu mai kia một tuyến
+ * đổi khuôn, màn hình vẫn hiện đúng danh sách thay vì hiện rỗng — và danh sách
+ * rỗng là kiểu hỏng tệ nhất ở đây, vì nó trông y hệt "bạn chưa có dữ liệu nào".
+ */
+function boc<T>(payload: Boc<T> | T[] | null | undefined): T[] {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+  return Array.isArray(payload?.results) ? payload.results : [];
 }
 
 export function createHttpApi(
   baseUrl: string,
   getToken: () => string | null,
-  fetchImpl?: typeof fetch
+  fetchImpl?: typeof fetch,
 ): PatientAppApi {
   const call = <T>(
     path: string,
@@ -52,7 +87,7 @@ export function createHttpApi(
       query?: Record<string, string | number | undefined>;
       body?: unknown;
       anonymous?: boolean;
-    } = {}
+    } = {},
   ) =>
     request<T>({
       baseUrl,
@@ -72,37 +107,88 @@ export function createHttpApi(
 
     departments: () => call("/departments", { anonymous: true }),
 
-    slots: ({ departmentId, date }) =>
-      call("/slots", { query: { department: departmentId, date } }),
+    slots: async ({ departmentId, date }) =>
+      boc(
+        await call<Boc<SlotAvailability>>("/slots", {
+          query: { department_id: departmentId, date },
+        }),
+      ),
 
-    createAppointment: (input) =>
-      call("/appointments", { method: "POST", body: input }),
+    /*
+     * Thân yêu cầu đi bằng snake_case vì router đọc `body.patient_id` và
+     * `body.department_id`. Gửi camelCase thì `Number(undefined)` ra NaN và
+     * máy chủ trả 404 "Không tìm thấy hồ sơ" — một thông báo không hề gợi ý
+     * rằng lỗi nằm ở tên trường.
+     */
+    createAppointment: ({ patientId, departmentId, date, session }) =>
+      call("/appointments", {
+        method: "POST",
+        body: {
+          patient_id: patientId,
+          department_id: departmentId,
+          date,
+          session,
+        },
+      }),
 
-    appointments: ({ patientId }) =>
-      call("/appointments", { query: { patient_id: patientId } }),
+    appointments: async ({ patientId }) =>
+      boc(
+        await call<Boc<Appointment>>("/appointments", {
+          query: { patient_id: patientId },
+        }),
+      ),
 
-    appointment: (id) => call(`/appointments/${id}`),
+    /*
+     * Mọi tuyến đọc đều phải kèm `patient_id`: `phamVi()` ở máy chủ dùng nó để
+     * đối chiếu lại với các hồ sơ mà phiên được phép xem. Một tài khoản chỉ
+     * liên kết đúng một hồ sơ thì thiếu tham số này vẫn chạy, nên lỗi sẽ chỉ lộ
+     * ra với người dùng có nhiều hồ sơ — tức là đúng những người thân đang giữ
+     * hồ sơ của con hoặc cha mẹ.
+     */
+    appointment: ({ id, patientId }) =>
+      call(`/appointments/${id}`, { query: { patient_id: patientId } }),
 
-    redeem: (input) =>
-      call("/redeem", { method: "POST", body: input, anonymous: true }),
+    confirmAppointment: ({ id, patientId }) =>
+      call(`/appointments/${id}/confirm`, {
+        method: "POST",
+        body: { patient_id: patientId },
+      }),
 
-    confirmAppointment: (id) =>
-      call(`/appointments/${id}/confirm`, { method: "POST" }),
-
-    cancelAppointment: (id, reason) =>
-      call(`/appointments/${id}/cancel`, { method: "POST", body: { reason } }),
+    cancelAppointment: ({ id, patientId, reason }) =>
+      call(`/appointments/${id}/cancel`, {
+        method: "POST",
+        body: { patient_id: patientId, reason },
+      }),
 
     queue: ({ patientId }) =>
       call("/queue", { query: { patient_id: patientId } }),
 
-    invoices: ({ patientId }) =>
-      call("/invoices", { query: { patient_id: patientId } }),
+    visits: async ({ patientId }) =>
+      boc(
+        await call<Boc<VisitSummary>>("/visits", {
+          query: { patient_id: patientId },
+        }),
+      ),
+
+    prescriptions: async ({ patientId }) =>
+      boc(
+        await call<Boc<PrescriptionSummary>>("/prescriptions", {
+          query: { patient_id: patientId },
+        }),
+      ),
+
+    // `/invoices` trả mảng trần — `boc()` vẫn chạy đúng, giữ lại để một lần đổi
+    // khuôn ở máy chủ không làm trống màn hình hoá đơn.
+    invoices: async ({ patientId }) =>
+      boc(
+        await call<InvoiceSummary[]>("/invoices", {
+          query: { patient_id: patientId },
+        }),
+      ),
 
     invoiceQr: (id) => call(`/invoices/${id}/qr`),
 
-    notifications: ({ patientId }) =>
-      call("/notifications", { query: { patient_id: patientId } }),
-
+    // Tuyến duy nhất nhận camelCase trong thân: router đọc `body.patientId`.
     unlink: (patientId) =>
       call("/unlink", { method: "POST", body: { patientId } }),
   };

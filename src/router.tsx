@@ -5,8 +5,9 @@ import NotFound from "./pages/404";
 import HomePage from "./pages/home";
 import InvoicesPage from "./pages/invoices";
 import InvoiceQrPage from "./pages/invoices/qr";
-import NotificationsPage from "./pages/notifications";
 import LinkPage from "./pages/link";
+import RecordsPage from "./pages/records";
+import RecordDetailPage from "./pages/records/detail";
 import ProfilesPage from "./pages/profiles";
 import BookingPage from "./pages/booking";
 import AppointmentsPage from "./pages/appointments";
@@ -53,6 +54,18 @@ const router = createBrowserRouter(
           handle: { back: true, title: "Số thứ tự hôm nay" },
         },
         {
+          path: "/records",
+          element: <RecordsPage />,
+          handle: { back: true, title: "Lịch sử khám" },
+        },
+        {
+          // `:visitId` là khoá chính của lượt khám, không phải mã lượt khám —
+          // cùng một luật với `/appointments/:id`: mã hiển thị không nằm trong URL.
+          path: "/records/:visitId",
+          element: <RecordDetailPage />,
+          handle: { back: true, title: "custom" },
+        },
+        {
           path: "/invoices",
           element: <InvoicesPage />,
           handle: { tab: true },
@@ -61,11 +74,6 @@ const router = createBrowserRouter(
           path: "/invoices/:id/qr",
           element: <InvoiceQrPage />,
           handle: { back: true, title: "Thanh toán" },
-        },
-        {
-          path: "/notifications",
-          element: <NotificationsPage />,
-          handle: { back: true, title: "Thông báo" },
         },
         { path: "*", element: <NotFound /> },
       ],

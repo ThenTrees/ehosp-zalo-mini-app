@@ -43,7 +43,7 @@ Dùng token đã ánh xạ, đừng viết mã màu hay cỡ pixel thẳng vào 
 
 ## Bộ UI dùng chung — `src/components/ui/`
 
-`Card`, `StatusChip` (kèm `trangThaiLichHen` / `trangThaiHoaDon` — chỗ duy nhất dịch trạng thái sang tiếng Việt), `SectionHeader`, `Segmented`, `ListRow`, `QuickActions`, `PageHeading`, `EmptyState`.
+`Card`, `StatusChip` (kèm `trangThaiLichHen` / `trangThaiHoaDon` / `trangThaiLuotKham` / `trangThaiDonThuoc` — chỗ duy nhất dịch trạng thái sang tiếng Việt; nhãn và sắc thái lấy theo `eHosp/data/enums.csv` để hai bề mặt không gọi cùng một trạng thái bằng hai cái tên), `SectionHeader`, `Segmented`, `ListRow`, `QuickActions`, `PageHeading`, `EmptyState`.
 
 Nút ở `src/components/button.tsx`, bốn kiểu `primary` / `secondary` / `danger` / `ghost`. Nút mặc định chiếm hết bề ngang; muốn hẹp thì truyền `fullWidth={false}` chứ **không** thêm `w-auto` qua `className` — cùng độ đặc hiệu và Tailwind xuất `w-full` sau nên `w-full` thắng.
 

@@ -22,7 +22,7 @@ export default function AppointmentsPage() {
   // "Sắp tới" là những hẹn còn hiệu lực và chưa qua ngày; mọi thứ khác — đã
   // khám, đã huỷ, lỡ hẹn, hoặc quá ngày — nằm ở nhánh "Đã qua".
   const conHieuLuc = (status: string) =>
-    status === "Scheduled" || status === "WaitListed" || status === "CheckedIn";
+    status === "Scheduled" || status === "CheckedIn";
 
   const sapToi = appointments
     .filter((hen) => conHieuLuc(hen.status) && hen.apptDate >= homNay)

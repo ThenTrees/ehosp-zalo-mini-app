@@ -4,8 +4,8 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { Button } from "@/components/button";
 import {
-  BellIcon,
   CalendarIcon,
+  ClipboardIcon,
   CheckCircleIcon,
   IdCardIcon,
   LogOutIcon,
@@ -134,9 +134,9 @@ export default function ProfilesPage() {
 
         <Section title="Tài khoản">
           <ListRow
-            icon={BellIcon}
-            label="Thông báo"
-            onClick={() => navigate("/notifications", { viewTransition: true })}
+            icon={ClipboardIcon}
+            label="Lịch sử khám"
+            onClick={() => navigate("/records", { viewTransition: true })}
           />
           <Duong />
           <ListRow

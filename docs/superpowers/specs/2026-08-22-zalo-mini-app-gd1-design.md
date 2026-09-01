@@ -41,7 +41,7 @@ Nghĩa là chức năng trung tâm — đặt lịch — hiện **không có gì
 | D5 | Người bệnh **được tự đặt lịch** | Kèm chính sách chống đặt rác |
 | D6 | Mở **30%** công suất cho đặt trực tuyến | Đúng khuyến nghị §8 của tài liệu |
 | D7 | Đặt sai khoa → **hàng đợi cho tiếp đón duyệt** | Màn hình mới trong `emr-ui` |
-| D8 | Phiên người bệnh đi bằng **header Bearer**, không dùng cookie | Cookie bên thứ ba không đáng tin trong webview Zalo |
+| D8 | Phiên người bệnh đi bằng header **`X-Patient-Session`**, không dùng cookie | Cookie bên thứ ba không đáng tin trong webview Zalo — xem §4.2 |
 
 ### 2.1. Vì sao không hiển thị bệnh án và đơn thuốc
 
@@ -76,7 +76,7 @@ Quyết định này đã được cân nhắc lại trong buổi thiết kế n
 
 ```
 Zalo Mini App  (my-doctor-app)
-      |  HTTPS · Authorization: Bearer <phiên người bệnh>
+      |  HTTPS · X-Patient-Session: <phiên người bệnh>
       v
 emr-api · router /api/patient-app/*      <- phiên riêng, chốt quyền riêng
       |
@@ -107,8 +107,19 @@ Cụ thể:
 
 `emr-ui` dùng cookie HttpOnly `emr_sid` với `credentials: 'include'`. Mini app chạy
 trong webview Zalo ở origin khác — cookie bên thứ ba trong webview không đáng tin
-cậy. Phiên người bệnh dùng **header `Authorization: Bearer`**, lưu bằng `zmp-sdk`
-storage phía client.
+cậy. Phiên người bệnh dùng **header**, lưu bằng `zmp-sdk` storage phía client.
+
+Tên header là **`X-Patient-Session`**, và việc chọn tên này có lý do:
+
+`laySid()` trong `services/emr-api/src/auth.ts` lấy mã phiên từ cookie `emr_sid`
+**hoặc** header `X-Emr-Session` — nghĩa là hệ thống đã có sẵn quy ước phiên qua
+header cho máy khách ngoài trình duyệt. Mini app theo đúng dáng ấy, nên **không**
+dùng `Authorization: Bearer` (emr-api không đọc header đó).
+
+Nhưng cũng **không dùng lại chính `X-Emr-Session`**: đó là phiên nhân viên, tra
+vào bảng `emr_session`. `modules/patient-app/README.md` yêu cầu phiên người bệnh
+và phiên nhân viên không dùng chung bảng lẫn chốt quyền; cho hai loại thông tin
+xác thực khác hẳn nhau đi chung một tên header là mời gọi nhầm lẫn về sau.
 
 Hai loại phiên:
 
@@ -239,6 +250,43 @@ thể xem số thứ tự và huỷ lịch hẹn của người khác.
 
 Không mã nào được nằm trong URL — quy ước §4.4 của `00-TONG-QUAN.md`.
 
+### 6.3. Đối chiếu với API hiện có của `emr-api` (rà ngày 2026-08-23)
+
+Đã đọc toàn bộ router đang mount trong `services/emr-api/src/index.ts`. Kết quả:
+**1 trong 15 endpoint dùng lại được gần như nguyên vẹn, 2 dùng được một phần, 12 chưa có.**
+
+| Mini app cần | `emr-api` có gì | Kết luận |
+|---|---|---|
+| `GET /departments` | `GET /api/catalog/departments` | Dùng được — chỉ vướng `requireAuth` |
+| `GET /queue` | `GET /api/visits/queue?department=&status=&date=` | Sai trục: trả hàng chờ **cả khoa**, không phải "số của tôi" |
+| `GET /invoices` | `GET /api/billing/visit/:visitId` | Sai trục: theo **lượt khám**, không theo bệnh nhân |
+| `POST /link` | `GET /api/patients?q=` | Có dữ liệu nhưng sai mục đích — xem bên dưới |
+| 11 endpoint còn lại | — | Chưa có |
+
+**Hai rào cản không đi vòng được.**
+
+*Mọi router đều là API nhân viên.* `catalog.ts`, `billing.ts`, `visits.ts`, `forms.ts`
+đều mở bằng `router.use(requireAuth)`, và danh tính duy nhất là `emr_staff` kèm
+`role`. Không thể cấp tài khoản nhân viên cho người bệnh: `requireRole` có đường
+vòng cho vai trò toàn quyền, và một tài khoản như vậy đọc được hồ sơ của tất cả.
+
+`GET /api/patients?q=` minh hoạ vì sao không tái sử dụng được: nó tìm theo tên, mã
+y tế, **điện thoại**, số thẻ, CCCD và trả về **danh sách** hồ sơ khớp. Đó đúng là
+công cụ tra cứu cho tiếp đón, và đúng là thứ §5.4 cấm.
+
+*Không có mô hình lịch hẹn.* Migration dừng ở `012`; `emr_appointment*` sẽ ở `014`.
+
+**Thứ dùng lại được không phải endpoint, mà là nền.**
+
+| Có sẵn | Dùng cho |
+|---|---|
+| `emr_patient_link.phone`, `.birthdate` + `emr_insurance_card.card_no` | Thang bậc xác minh §5.4 |
+| `emr_visit.queue_no` | Số thứ tự |
+| `emr_department` | Danh sách khoa |
+| `refreshBilling()` / `computeAmounts()` trong `util.ts` | Hoá đơn |
+| `emr_session` (migration `011`) + `services/sessionStore.ts` | **Cơ chế** phiên: lưu SHA-256 của mã phiên, hạn tuyệt đối + hạn nghỉ. Phiên người bệnh dùng lại kiểu này với **bảng riêng** |
+| `emr_access_log` | Tiêu chí nghiệm thu "mọi truy cập đều ghi log" |
+
 ## 7. Front-end — repo `my-doctor-app`
 
 ### 7.1. Việc dọn dẹp template
@@ -271,7 +319,7 @@ Không mã nào được nằm trong URL — quy ước §4.4 của `00-TONG-QUA
 là điểm mạnh sẵn có của template và không thay đổi.
 
 ```
-src/services/patient-app-api.ts   <- khớp chính xác hợp đồng §6, gắn Bearer
+src/services/patient-app-api.ts   <- khớp chính xác hợp đồng §6, gắn header phiên
 src/services/fake/                <- fake khớp cùng hợp đồng, bật bằng biến môi trường
 src/state.ts                      <- atom gọi vào services, UI không đổi
 src/types.d.ts                    <- viết lại theo hợp đồng §6, bỏ type của template
@@ -309,7 +357,7 @@ gửi tin báo lại cho người bệnh (dịch vụ 11 — GĐ2; GĐ1 gọi đ
 | 3 | Đường găng nằm ở repo khác (`013` -> `014` -> `022`) | **Cao** | Front-end chạy song song trên fake khớp hợp đồng |
 | 4 | Zalo từ chối duyệt nội dung y tế | Trung bình | Chuẩn bị giấy phép hoạt động KCB từ đầu |
 | 5 | Đặt lịch rác | Trung bình | Giới hạn 2 hẹn mở / hồ sơ; chặn sau 3 lần bỏ hẹn |
-| 6 | Phiên `emr-api` lưu trong bộ nhớ tiến trình | Trung bình | Phiên người bệnh **không** dùng lại cơ chế đó; cần lưu bền để restart không đăng xuất toàn bộ người bệnh |
+| 6 | Nhầm phiên nhân viên với phiên người bệnh | **Cao** | Bảng riêng, tên header riêng (`X-Patient-Session`), middleware riêng — `requireAuth`/`requireRole` hiện có **không** chạm vào `/api/patient-app/*` |
 | 7 | Phụ thuộc nền tảng Zalo | Trung bình | Đường web song song — GĐ2 |
 
 ## 10. Tiêu chí hoàn thành

@@ -10,6 +10,20 @@ export interface RequestOptions {
   fetchImpl?: typeof fetch;
 }
 
+/**
+ * Header mang phiên người bệnh.
+ *
+ * `emr-api` không đọc `Authorization`: `laySid()` trong `auth.ts` lấy mã phiên
+ * từ cookie `emr_sid` hoặc header `X-Emr-Session`. Cookie bên thứ ba không
+ * đáng tin trong webview Zalo, nên mini app đi bằng header.
+ *
+ * Nhưng KHÔNG dùng lại chính `X-Emr-Session`: đó là phiên **nhân viên**, tra
+ * vào bảng `emr_session`. `modules/patient-app/README.md` yêu cầu phiên người
+ * bệnh và phiên nhân viên không dùng chung bảng lẫn chốt quyền — cho hai loại
+ * thông tin xác thực khác hẳn nhau đi chung một tên header là mời gọi nhầm lẫn.
+ */
+export const PATIENT_SESSION_HEADER = "X-Patient-Session";
+
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
@@ -75,7 +89,7 @@ export async function request<T>(options: RequestOptions): Promise<T> {
     "Content-Type": "application/json",
   };
   if (token) {
-    headers.Authorization = `Bearer ${token}`;
+    headers[PATIENT_SESSION_HEADER] = token;
   }
 
   const response = await fetchImpl(buildUrl(baseUrl, path, query), {

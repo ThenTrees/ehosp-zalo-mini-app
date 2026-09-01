@@ -38,20 +38,28 @@ describe("buildUrl", () => {
 });
 
 describe("request", () => {
-  it("gắn header Bearer khi có token", async () => {
+  it("gắn header X-Patient-Session khi có token", async () => {
     const spy = fakeFetch(200, { ok: true });
     await request({ baseUrl: BASE, path: "/me", token: "abc", fetchImpl: spy });
 
     const [, init] = callOf(spy);
-    expect(init.headers.Authorization).toBe("Bearer abc");
+    expect(init.headers["X-Patient-Session"]).toBe("abc");
   });
 
-  it("không gắn header Bearer khi không có token", async () => {
+  it("không dùng Authorization: emr-api không đọc header đó", async () => {
+    const spy = fakeFetch(200, { ok: true });
+    await request({ baseUrl: BASE, path: "/me", token: "abc", fetchImpl: spy });
+
+    const [, init] = callOf(spy);
+    expect(init.headers.Authorization).toBeUndefined();
+  });
+
+  it("không gắn header phiên khi không có token", async () => {
     const spy = fakeFetch(200, { ok: true });
     await request({ baseUrl: BASE, path: "/departments", fetchImpl: spy });
 
     const [, init] = callOf(spy);
-    expect(init.headers.Authorization).toBeUndefined();
+    expect(init.headers["X-Patient-Session"]).toBeUndefined();
   });
 
   it("gửi thân JSON với phương thức POST", async () => {

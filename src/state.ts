@@ -3,10 +3,11 @@ import { atomFamily, atomWithRefresh, atomWithReset } from "jotai/utils";
 import { api, setSessionToken } from "@/services";
 import { clearSession, loadSession, saveSession } from "@/services/session";
 import type {
-  AppNotification,
   Appointment,
   InvoiceSummary,
+  PrescriptionSummary,
   Session,
+  VisitSummary,
 } from "@/types";
 
 /**
@@ -41,29 +42,11 @@ export const activeProfileState = atom(async (get) => {
   return profiles.find((p) => p.patientId === activeId) ?? profiles[0] ?? null;
 });
 
-/**
- * Mốc "đã xem thông báo". Máy chủ không có cờ đã đọc, nên chấm đỏ trên chuông
- * tính tại máy: thông báo nào có `createdAt` sau mốc này thì coi là chưa đọc.
- */
-const notificationsSeenAtBaseState = atom<string | null>(null);
-
-export const notificationsSeenAtState = atom(
-  (get) => get(notificationsSeenAtBaseState),
-  async (_get, set, seenAt: string) => {
-    set(notificationsSeenAtBaseState, seenAt);
-    const session = await loadSession();
-    if (session) {
-      await saveSession({ ...session, notificationsSeenAt: seenAt });
-    }
-  },
-);
-
 /** Nạp lại phiên đã lưu khi mở app. `Layout` gọi đúng một lần lúc mount. */
 export const hydrateSessionState = atom(null, async (_get, set) => {
   const session = await loadSession();
   setSessionToken(session?.token ?? null);
   set(activePatientIdBaseState, session?.activePatientId ?? null);
-  set(notificationsSeenAtBaseState, session?.notificationsSeenAt ?? null);
   set(profilesState);
 });
 
@@ -75,7 +58,6 @@ export const applyLinkState = atom(
     await saveSession({
       token: payload.token,
       activePatientId: payload.patientId,
-      notificationsSeenAt: null,
     });
     set(activePatientIdBaseState, payload.patientId);
     set(profilesState);
@@ -96,6 +78,20 @@ export const unlinkState = atom(null, async (_get, set, patientId: number) => {
 export const departmentsState = atom(async () => api.departments());
 
 /**
+ * Tra tên khoa từ mã khoa.
+ *
+ * `/visits` chỉ trả `departmentId`, không trả tên — nên màn Lịch sử khám phải
+ * tự ghép qua danh mục. Ghép ở đây chứ không ở trang: `departmentsState` là
+ * một atom async, và để mỗi trang tự `await` rồi tự dựng `Map` là ba bản sao
+ * của cùng một việc.
+ */
+export const departmentNameState = atom(async (get) => {
+  const khoa = await get(departmentsState);
+  const bang = new Map(khoa.map((k) => [k.id, k.name]));
+  return (id: number) => bang.get(id) ?? "Chưa rõ khoa";
+});
+
+/**
  * Đặt lịch
  */
 export const slotsState = atomFamily(
@@ -108,18 +104,17 @@ export const bookingFormState = atomWithReset<{
   departmentId?: number;
   date?: string;
   session?: Session;
-  reason?: string;
 }>({});
 
 /**
- * Lịch hẹn, số thứ tự, hoá đơn, thông báo — tất cả khoá theo hồ sơ.
+ * Lịch hẹn, số thứ tự, lượt khám, đơn thuốc, hoá đơn — tất cả khoá theo hồ sơ.
  *
  * Khoá nhận `null` nghĩa là "chưa chọn hồ sơ nào", và khi đó atom trả về rỗng
  * **mà không gọi API**. Đây không phải tiện nghi: hook của React không đặt
  * điều kiện được, nên trang luôn phải đọc atom trước rồi mới rẽ nhánh được.
  * Nếu atom đòi một `number`, trang buộc phải bịa ra một mã bệnh nhân giả
  * (`patientId ?? 0`) và đi hỏi dữ liệu của một người không tồn tại — máy chủ
- * thật sẽ trả 403 cho mọi người dùng chưa liên kết.
+ * thật sẽ trả 404 cho mọi người dùng chưa liên kết.
  */
 export const appointmentsState = atomFamily((patientId: number | null) =>
   atomWithRefresh(
@@ -128,8 +123,21 @@ export const appointmentsState = atomFamily((patientId: number | null) =>
   ),
 );
 
-export const appointmentByIdState = atomFamily((id: number) =>
-  atomWithRefresh(async () => api.appointment(id)),
+/**
+ * Một lịch hẹn cụ thể.
+ *
+ * Khoá gồm CẢ `patientId` chứ không chỉ `id`: máy chủ đối chiếu `patient_id`
+ * với phạm vi của phiên ở mỗi tuyến đọc, nên thiếu nó là 400 với người dùng
+ * giữ nhiều hồ sơ. Khoá bằng cả hai cũng ngăn việc chuyển hồ sơ người thân mà
+ * vẫn còn nhìn thấy lịch hẹn đã nạp của hồ sơ trước.
+ */
+export const appointmentByIdState = atomFamily(
+  ({ id, patientId }: { id: number; patientId: number | null }) =>
+    atomWithRefresh(
+      async (): Promise<Appointment | null> =>
+        patientId === null ? null : api.appointment({ id, patientId }),
+    ),
+  (a, b) => a.id === b.id && a.patientId === b.patientId,
 );
 
 export const queueState = atomFamily((patientId: number | null) =>
@@ -138,33 +146,25 @@ export const queueState = atomFamily((patientId: number | null) =>
   ),
 );
 
+export const visitsState = atomFamily((patientId: number | null) =>
+  atom(
+    async (): Promise<VisitSummary[]> =>
+      patientId === null ? [] : api.visits({ patientId }),
+  ),
+);
+
+export const prescriptionsState = atomFamily((patientId: number | null) =>
+  atom(
+    async (): Promise<PrescriptionSummary[]> =>
+      patientId === null ? [] : api.prescriptions({ patientId }),
+  ),
+);
+
 export const invoicesState = atomFamily((patientId: number | null) =>
   atom(
     async (): Promise<InvoiceSummary[]> =>
       patientId === null ? [] : api.invoices({ patientId }),
   ),
-);
-
-export const notificationsState = atomFamily((patientId: number | null) =>
-  atom(
-    async (): Promise<AppNotification[]> =>
-      patientId === null ? [] : api.notifications({ patientId }),
-  ),
-);
-
-/** Số thông báo mới hơn mốc đã xem — chấm đỏ trên chuông ở Header. */
-export const unreadNotificationCountState = atomFamily(
-  (patientId: number | null) =>
-    atom(async (get) => {
-      const notifications = await get(notificationsState(patientId));
-      const seenAt = get(notificationsSeenAtState);
-      if (seenAt === null) {
-        return notifications.length;
-      }
-      const moc = Date.parse(seenAt);
-      return notifications.filter((tin) => Date.parse(tin.createdAt) > moc)
-        .length;
-    }),
 );
 
 /**

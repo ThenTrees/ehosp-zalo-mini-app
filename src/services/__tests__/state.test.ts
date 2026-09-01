@@ -13,7 +13,8 @@ import {
   appointmentsState,
   queueState,
   invoicesState,
-  notificationsState,
+  prescriptionsState,
+  visitsState,
 } from "@/state";
 
 describe("state", () => {
@@ -41,7 +42,8 @@ describe("state", () => {
 
     await expect(store.get(appointmentsState(null))).resolves.toEqual([]);
     await expect(store.get(invoicesState(null))).resolves.toEqual([]);
-    await expect(store.get(notificationsState(null))).resolves.toEqual([]);
+    await expect(store.get(visitsState(null))).resolves.toEqual([]);
+    await expect(store.get(prescriptionsState(null))).resolves.toEqual([]);
     await expect(store.get(queueState(null))).resolves.toBeNull();
   });
 });

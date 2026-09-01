@@ -1,15 +1,11 @@
 import type { PatientAppApi } from "../patient-app-api";
-import type {
-  Appointment,
-  AppNotification,
-  InvoiceSummary,
-  Session,
-  SlotAvailability,
-} from "@/types";
+import type { Appointment, InvoiceSummary, Session } from "@/types";
 import {
   CONG_SUAT,
+  DON_THUOC,
   HO_SO,
   KHOA,
+  LUOT_KHAM,
   NGAY_SINH_HOP_LE,
   QUOTA_ONLINE_PCT,
 } from "./data";
@@ -17,7 +13,7 @@ import {
 const TRE = 300;
 const doiMotChut = () => new Promise((r) => setTimeout(r, TRE));
 
-const DANG_MO: Appointment["status"][] = ["Scheduled", "CheckedIn", "WaitListed"];
+const DANG_MO: Appointment["status"][] = ["Scheduled", "CheckedIn"];
 
 export function createFakeApi(): PatientAppApi {
   const lichHen: Appointment[] = [];
@@ -38,14 +34,22 @@ export function createFakeApi(): PatientAppApi {
         h.department.id === departmentId &&
         h.apptDate === date &&
         h.session === session &&
-        DANG_MO.includes(h.status)
+        DANG_MO.includes(h.status),
     ).length;
 
   const choMoChoApp = (departmentId: number, session: Session) =>
     Math.floor(
-      ((CONG_SUAT[departmentId]?.[session] ?? 0) * QUOTA_ONLINE_PCT) / 100
+      ((CONG_SUAT[departmentId]?.[session] ?? 0) * QUOTA_ONLINE_PCT) / 100,
     );
 
+  const conLai = (departmentId: number, date: string, session: Session) =>
+    choMoChoApp(departmentId, session) - daGiu(departmentId, date, session);
+
+  /**
+   * Mô phỏng hai chốt của máy chủ: phải có phiên, và hồ sơ phải thuộc phiên đó.
+   * Chúng là thứ duy nhất ngăn một phiên hợp lệ đọc hồ sơ người khác, nên tầng
+   * giả phải có chúng — nếu không, lỗi quên `patient_id` chỉ lộ ra ở production.
+   */
   const buocXacMinh = (patientId: number) => {
     if (!daLienKet) {
       throw new Error("Vui lòng liên kết tài khoản trước.");
@@ -53,6 +57,15 @@ export function createFakeApi(): PatientAppApi {
     if (!HO_SO.some((h) => h.patientId === patientId)) {
       throw new Error("Hồ sơ không thuộc tài khoản này.");
     }
+  };
+
+  const timHen = (id: number, patientId: number) => {
+    buocXacMinh(patientId);
+    const hen = lichHen.find((h) => h.id === id && h.patientId === patientId);
+    if (!hen) {
+      throw new Error("Không tìm thấy lịch hẹn.");
+    }
+    return hen;
   };
 
   return {
@@ -79,16 +92,18 @@ export function createFakeApi(): PatientAppApi {
       return [...KHOA];
     },
 
+    /*
+     * Máy chủ thật chưa đếm được chỗ nên luôn trả `available: true`. Tầng giả
+     * vẫn đếm theo quota 30%: nhánh "đã hết chỗ" của giao diện phải có đường
+     * chạy được ở đâu đó, nếu không nó sẽ mục đi mà không ai biết.
+     */
     async slots({ departmentId, date }) {
       await doiMotChut();
       const buoi: Session[] = ["SANG", "CHIEU"];
-      return buoi.map<SlotAvailability>((session) => ({
+      return buoi.map((session) => ({
         date,
         session,
-        remaining: Math.max(
-          0,
-          choMoChoApp(departmentId, session) - daGiu(departmentId, date, session)
-        ),
+        available: conLai(departmentId, date, session) > 0,
       }));
     },
 
@@ -97,27 +112,31 @@ export function createFakeApi(): PatientAppApi {
       buocXacMinh(input.patientId);
 
       const dangMo = lichHen.filter(
-        (h) => h.patientId === input.patientId && DANG_MO.includes(h.status)
+        (h) => h.patientId === input.patientId && DANG_MO.includes(h.status),
       ).length;
       if (dangMo >= 2) {
-        throw new Error(
-          "Mỗi hồ sơ chỉ được giữ tối đa 2 lịch hẹn cùng lúc. Vui lòng huỷ bớt trước khi đặt thêm."
-        );
+        throw new Error("Hồ sơ đã có tối đa 2 lịch hẹn đang mở.");
       }
-
-      const conLai =
-        choMoChoApp(input.departmentId, input.session) -
-        daGiu(input.departmentId, input.date, input.session);
-      if (conLai <= 0) {
+      if (
+        lichHen.some(
+          (h) =>
+            h.patientId === input.patientId &&
+            h.apptDate === input.date &&
+            DANG_MO.includes(h.status),
+        )
+      ) {
+        throw new Error("Hồ sơ đã có lịch hẹn trong ngày này.");
+      }
+      if (conLai(input.departmentId, input.date, input.session) <= 0) {
         throw new Error(
-          "Buổi này đã hết chỗ đặt trực tuyến. Vui lòng chọn buổi khác."
+          "Buổi này đã hết chỗ đặt trực tuyến. Vui lòng chọn buổi khác.",
         );
       }
 
       const id = idTiepTheo++;
       const hen: Appointment = {
         id,
-        appointmentCode: `HK${input.date.replace(/-/g, "").slice(2)}${id}`,
+        appointmentCode: `HK${input.date.replace(/-/g, "").slice(2)}${String(id).padStart(4, "0")}`,
         patientId: input.patientId,
         department: khoaTheoId(input.departmentId),
         apptDate: input.date,
@@ -135,45 +154,32 @@ export function createFakeApi(): PatientAppApi {
       return lichHen
         .filter((h) => h.patientId === patientId)
         .map((h) => ({ ...h }))
-        .sort((a, b) => a.apptDate.localeCompare(b.apptDate));
+        .sort((a, b) => b.apptDate.localeCompare(a.apptDate));
     },
 
-    async appointment(id) {
+    async appointment({ id, patientId }) {
       await doiMotChut();
-      const hen = lichHen.find((h) => h.id === id);
-      if (!hen) {
-        throw new Error("Không tìm thấy lịch hẹn.");
-      }
-      return { ...hen };
+      return { ...timHen(id, patientId) };
     },
 
-    async redeem({ code }) {
+    async confirmAppointment({ id, patientId }) {
       await doiMotChut();
-      const hen = lichHen.find((h) => h.appointmentCode === code);
-      if (!hen) {
-        throw new Error("Mã hẹn không đúng.");
-      }
-      return { token: "phien-ngan-han-gia", appointmentId: hen.id };
-    },
-
-    async confirmAppointment(id) {
-      await doiMotChut();
-      const hen = lichHen.find((h) => h.id === id);
-      if (!hen) {
-        throw new Error("Không tìm thấy lịch hẹn.");
+      const hen = timHen(id, patientId);
+      if (hen.status !== "Scheduled") {
+        throw new Error("Lịch hẹn không còn có thể thay đổi.");
       }
       hen.patientConfirmed = true;
       return { ...hen };
     },
 
-    async cancelAppointment(id) {
+    async cancelAppointment({ id, patientId, reason }) {
       await doiMotChut();
-      const hen = lichHen.find((h) => h.id === id);
-      if (!hen) {
-        throw new Error("Không tìm thấy lịch hẹn.");
+      const hen = timHen(id, patientId);
+      if (hen.status !== "Scheduled") {
+        throw new Error("Lịch hẹn không còn có thể thay đổi.");
       }
-      if (hen.status !== "Scheduled" && hen.status !== "WaitListed") {
-        throw new Error("Lịch hẹn này không huỷ được nữa.");
+      if (!reason.trim()) {
+        throw new Error("Phải nhập lý do huỷ.");
       }
       hen.status = "Cancelled";
       return { ...hen };
@@ -189,6 +195,18 @@ export function createFakeApi(): PatientAppApi {
         roomName: "Phòng khám số 2",
         estimatedWaitMinutes: 18,
       };
+    },
+
+    async visits({ patientId }) {
+      await doiMotChut();
+      buocXacMinh(patientId);
+      return (LUOT_KHAM[patientId] ?? []).map((lk) => ({ ...lk }));
+    },
+
+    async prescriptions({ patientId }) {
+      await doiMotChut();
+      buocXacMinh(patientId);
+      return (DON_THUOC[patientId] ?? []).map((dt) => ({ ...dt }));
     },
 
     async invoices({ patientId }) {
@@ -209,30 +227,6 @@ export function createFakeApi(): PatientAppApi {
         amount: 42000,
         expiresAt: "2026-12-31T23:59:59+07:00",
       };
-    },
-
-    async notifications({ patientId }) {
-      await doiMotChut();
-      buocXacMinh(patientId);
-      const list: AppNotification[] = [
-        {
-          id: 1,
-          patientId,
-          kind: "RESULT_READY",
-          createdAt: "2026-08-20T09:12:00+07:00",
-          title: "Kết quả đã có",
-          body: "Kết quả xét nghiệm ngày 20/08 đã sẵn sàng. Vui lòng xem trên Sổ sức khoẻ điện tử VNeID hoặc nhận tại quầy.",
-        },
-        {
-          id: 2,
-          patientId,
-          kind: "APPOINTMENT_REMINDER",
-          createdAt: "2026-08-19T08:00:00+07:00",
-          title: "Nhắc lịch hẹn",
-          body: "Bạn có lịch hẹn vào buổi sáng ngày 22/08 tại Khoa Nội.",
-        },
-      ];
-      return list;
     },
 
     async unlink() {

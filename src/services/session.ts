@@ -3,16 +3,10 @@ import { getStorage, setStorage, removeStorage } from "zmp-sdk";
 const STORAGE_KEY = "patient_app_session";
 
 export interface StoredSession {
-  /** Token Bearer của phiên app. Không bao giờ đưa vào URL. */
+  /** Mã phiên app, gửi qua header X-Patient-Session. Không bao giờ đưa vào URL. */
   token: string;
   /** Hồ sơ người bệnh đang xem; null khi chưa chọn. */
   activePatientId: number | null;
-  /**
-   * Lần cuối người dùng mở màn Thông báo, dạng ISO 8601; null khi chưa mở lần
-   * nào. Hợp đồng máy chủ không có cờ "đã đọc", nên chấm đỏ trên chuông được
-   * tính tại máy bằng cách so `createdAt` của thông báo với mốc này.
-   */
-  notificationsSeenAt: string | null;
 }
 
 export async function loadSession(): Promise<StoredSession | null> {
@@ -31,10 +25,6 @@ export async function loadSession(): Promise<StoredSession | null> {
       activePatientId:
         typeof parsed.activePatientId === "number"
           ? parsed.activePatientId
-          : null,
-      notificationsSeenAt:
-        typeof parsed.notificationsSeenAt === "string"
-          ? parsed.notificationsSeenAt
           : null,
     };
   } catch {

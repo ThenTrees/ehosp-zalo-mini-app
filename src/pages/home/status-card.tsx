@@ -56,11 +56,7 @@ export default function StatusCard() {
 
   const homNay = todayIso();
   const sapToi = appointments
-    .filter(
-      (hen) =>
-        (hen.status === "Scheduled" || hen.status === "WaitListed") &&
-        hen.apptDate >= homNay,
-    )
+    .filter((hen) => hen.status === "Scheduled" && hen.apptDate >= homNay)
     .sort((a, b) => a.apptDate.localeCompare(b.apptDate))[0];
 
   if (sapToi) {
