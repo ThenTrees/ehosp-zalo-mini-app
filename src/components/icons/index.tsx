@@ -255,6 +255,34 @@ export function ShieldIcon(props: IconProps) {
   );
 }
 
+/** Bảng kẹp hồ sơ — Lịch sử khám. */
+export function ClipboardIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M6.5 5.5H5a1.5 1.5 0 0 0-1.5 1.5v12.5A1.5 1.5 0 0 0 5 21h14a1.5 1.5 0 0 0 1.5-1.5V7A1.5 1.5 0 0 0 19 5.5h-1.5" />
+      <rect x="8" y="3" width="8" height="4" rx="1.2" />
+      <path d="M8 12h8M8 16h5" fill="none" />
+    </Svg>
+  );
+}
+
+/** Viên nang — đơn thuốc. Cố ý KHÔNG dùng ở đâu ngoài nhãn tab đơn thuốc. */
+export function PillIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect
+        x="2.6"
+        y="8.4"
+        width="18.8"
+        height="7.2"
+        rx="3.6"
+        transform="rotate(-45 12 12)"
+      />
+      <path d="M9.2 9.2l5.6 5.6" fill="none" />
+    </Svg>
+  );
+}
+
 export function InboxIcon(props: IconProps) {
   return (
     <Svg {...props}>

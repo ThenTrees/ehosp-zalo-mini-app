@@ -1,5 +1,10 @@
 import { ReactNode } from "react";
-import type { Appointment, InvoiceSummary } from "@/types";
+import type {
+  Appointment,
+  InvoiceSummary,
+  PrescriptionSummary,
+  VisitSummary,
+} from "@/types";
 
 export type Tone = "success" | "warning" | "error" | "neutral" | "info";
 
@@ -53,8 +58,44 @@ export function trangThaiLichHen(hen: Appointment): {
       return { nhan: "Đã huỷ", tone: "error" };
     case "Missed":
       return { nhan: "Lỡ hẹn", tone: "error" };
-    case "WaitListed":
-      return { nhan: "Chờ chỗ trống", tone: "warning" };
+  }
+}
+
+/**
+ * Nhãn trạng thái lượt khám.
+ *
+ * Mã và sắc thái lấy đúng theo nhóm VISIT_STATUS trong `eHosp/data/enums.csv`
+ * (cột nhãn tiếng Việt và cột tone), để hai bề mặt — màn nhân viên và mini app
+ * — không gọi cùng một trạng thái bằng hai cái tên khác nhau.
+ */
+export function trangThaiLuotKham(luot: VisitSummary): {
+  nhan: string;
+  tone: Tone;
+} {
+  switch (luot.status) {
+    case "WAITING":
+      return { nhan: "Chờ khám", tone: "warning" };
+    case "IN_PROGRESS":
+      return { nhan: "Đang khám", tone: "info" };
+    case "DONE":
+      return { nhan: "Đã khám xong", tone: "success" };
+    case "CANCELLED":
+      return { nhan: "Đã huỷ", tone: "error" };
+  }
+}
+
+/** Nhãn trạng thái đơn thuốc — nhóm PRESCRIPTION_STATUS, trừ mã DRAFT. */
+export function trangThaiDonThuoc(don: PrescriptionSummary): {
+  nhan: string;
+  tone: Tone;
+} {
+  switch (don.status) {
+    case "ISSUED":
+      return { nhan: "Đã kê, chờ lấy thuốc", tone: "warning" };
+    case "DISPENSED":
+      return { nhan: "Đã phát thuốc", tone: "success" };
+    case "CANCELLED":
+      return { nhan: "Đã huỷ", tone: "error" };
   }
 }
 

@@ -32,7 +32,7 @@ export default function Step2({
       <div>
         <h2 className="text-xl font-bold text-ink">Chọn ngày và buổi khám</h2>
         <p className="mt-1 text-sm text-ink-muted">
-          Số chỗ hiển thị là phần dành riêng cho kênh đặt lịch trực tuyến.
+          Phòng khám xếp bác sĩ và giờ cụ thể khi bạn tới nơi.
         </p>
       </div>
 
@@ -117,7 +117,7 @@ function DanhSachBuoi({
   return (
     <div className="space-y-3">
       {slots.map((slot) => {
-        const hetCho = slot.remaining <= 0;
+        const hetCho = !slot.available;
         return (
           <button
             key={slot.session}
@@ -142,7 +142,7 @@ function DanhSachBuoi({
               <span
                 className={`mt-0.5 block text-sm ${hetCho ? "text-ink-muted" : "text-success"}`}
               >
-                {hetCho ? "Đã hết chỗ" : `Còn ${slot.remaining} chỗ`}
+                {hetCho ? "Đã hết chỗ" : "Còn nhận đặt lịch"}
               </span>
             </span>
             {!hetCho && (

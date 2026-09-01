@@ -2,8 +2,8 @@ import { useAtomValue } from "jotai";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/button";
 import {
-  BellIcon,
   CalendarPlusIcon,
+  ClipboardIcon,
   ReceiptIcon,
   ShieldIcon,
   TicketIcon,
@@ -28,8 +28,8 @@ import { formatPrice, todayIso } from "@/utils/format";
 const THAO_TAC: QuickAction[] = [
   { icon: CalendarPlusIcon, label: "Đặt lịch khám", to: "/booking" },
   { icon: TicketIcon, label: "Số thứ tự", to: "/queue" },
+  { icon: ClipboardIcon, label: "Lịch sử khám", to: "/records" },
   { icon: ReceiptIcon, label: "Hoá đơn", to: "/invoices" },
-  { icon: BellIcon, label: "Thông báo", to: "/notifications" },
 ];
 
 export default function HomePage() {
@@ -53,11 +53,7 @@ export default function HomePage() {
 
   const homNay = todayIso();
   const sapToi = appointments
-    .filter(
-      (hen) =>
-        (hen.status === "Scheduled" || hen.status === "WaitListed") &&
-        hen.apptDate >= homNay,
-    )
+    .filter((hen) => hen.status === "Scheduled" && hen.apptDate >= homNay)
     .sort((a, b) => a.apptDate.localeCompare(b.apptDate));
 
   const canTra = invoices.filter((hd) => !hd.paid && hd.amountDue > 0);

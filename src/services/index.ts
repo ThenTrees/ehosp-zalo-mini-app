@@ -20,8 +20,12 @@ export function setSessionToken(token: string | null): void {
   phienHienTai = token;
 }
 
-export const api: PatientAppApi = runtimeConfig.useFake
-  ? createFakeApi()
-  : createHttpApi(runtimeConfig.apiBaseUrl, () => phienHienTai);
+function chonApi(): PatientAppApi {
+  return runtimeConfig.cheDo === "fake"
+    ? createFakeApi()
+    : createHttpApi(runtimeConfig.apiBaseUrl, () => phienHienTai);
+}
+
+export const api: PatientAppApi = chonApi();
 
 export type { PatientAppApi };

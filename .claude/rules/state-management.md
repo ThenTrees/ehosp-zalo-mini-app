@@ -19,15 +19,19 @@ paths:
 | `session.ts` | Lưu/đọc/xoá phiên người bệnh qua kho lưu trữ `zmp-sdk` |
 | `http.ts` | `fetch` + header `X-Patient-Session` + `ApiError`; **`buildUrl` ném lỗi nếu ai đó đưa `code`/`token` vào query string** |
 | `patient-app-api.ts` | `interface PatientAppApi` — hợp đồng §6 của spec — và cài đặt HTTP thật |
-| `fake/` | Cài đặt giả cùng interface, mô phỏng cả quota 30% và luật tối đa 2 lịch hẹn đang mở |
+| `fake/` | Cài đặt giả cùng interface, mô phỏng cả quota 30%, luật tối đa 2 lịch hẹn đang mở và chốt phạm vi hồ sơ |
 | `index.ts` | Chọn thật/giả theo `VITE_USE_FAKE`, giữ token hiện hành |
 
-Đổi sang back-end thật = đặt `VITE_USE_FAKE=false` và `VITE_API_BASE_URL` trong `.env`. Không sửa dòng mã nào.
+Đổi sang back-end thật = đặt `VITE_USE_FAKE=false` và `VITE_API_BASE_URL` trong `.env`. Không sửa dòng mã nào. Chỉ còn **hai** chế độ — `hybrid` đã bị bỏ ngày 2026-08-30.
+
+Thân yêu cầu đi bằng **snake_case** (`patient_id`, `department_id`) vì `router.ts` của eHosp đọc như vậy; ngoại lệ duy nhất là `/unlink` nhận `patientId`. Các tuyến danh sách trả `{ results: [...] }`, riêng `/invoices` trả mảng trần — hàm `boc()` trong `patient-app-api.ts` là chỗ duy nhất biết sự khác biệt đó.
 
 ## Quy ước atom
 
 - Danh mục: atom async phẳng (`departmentsState`).
-- **Mọi atom đọc dữ liệu của người bệnh là `atomFamily` khoá theo `patientId`** (`appointmentsState`, `queueState`, `invoicesState`, `notificationsState`) — chuyển hồ sơ người thân không được lẫn dữ liệu.
+- **Mọi atom đọc dữ liệu của người bệnh là `atomFamily` khoá theo `patientId`** (`appointmentsState`, `queueState`, `visitsState`, `prescriptionsState`, `invoicesState`) — chuyển hồ sơ người thân không được lẫn dữ liệu.
+- `appointmentByIdState` khoá theo **cả** `{ id, patientId }`: máy chủ đối chiếu `patient_id` với phạm vi phiên ở mọi tuyến đọc, nên mã lịch hẹn một mình không đủ để hỏi.
+- `departmentNameState` là hàm tra `departmentId -> tên khoa`, dựng một lần từ `departmentsState`. `/visits` chỉ trả mã khoa, và để mỗi trang tự dựng `Map` là ba bản sao của cùng một việc.
 - Cần làm mới sau khi ghi thì dùng `atomWithRefresh` và gọi setter không tham số.
 - Form nhiều bước: `atomWithReset` (`bookingFormState`) đọc/ghi chung qua các bước.
 - `activePatientIdState` đọc ra `number | null`, ghi vào thì **đồng thời lưu xuống kho lưu trữ**; `hydrateSessionState` nạp lại lúc `Layout` mount.
