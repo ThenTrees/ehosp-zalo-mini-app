@@ -1,6 +1,7 @@
 import { atom } from "jotai";
 import { atomFamily, atomWithRefresh, atomWithReset } from "jotai/utils";
 import { api, setSessionToken } from "@/services";
+import { ApiError } from "@/services/http";
 import { clearSession, loadSession, saveSession } from "@/services/session";
 import type {
   Appointment,
@@ -13,9 +14,47 @@ import type {
 /**
  * Phiên và hồ sơ đang xem
  */
-export const profilesState = atomWithRefresh(async () => {
-  const { profiles } = await api.me();
-  return profiles;
+/**
+ * Phiên đã lưu, nạp đúng một lần cho mỗi store.
+ *
+ * `profilesState` PHỤ THUỘC vào atom này chứ không chạy đua với nó. Trước đây
+ * `Layout` nạp phiên trong `useEffect` — tức sau khi render — còn `HomePage`
+ * đọc `profilesState` trong lúc render, nên lời gọi `/me` đầu tiên luôn đi
+ * không kèm token và lĩnh 401 kể cả khi kho lưu trữ đang giữ phiên hợp lệ.
+ *
+ * Đặt `setSessionToken` ngay trong hàm đọc là cố ý: mã phiên phải có mặt trước
+ * khi bất kỳ atom nào chạm tới API, và đây là điểm duy nhất bảo đảm được điều
+ * đó mà không cần mọi trang tự nhớ gọi trước.
+ */
+export const storedSessionState = atom(async () => {
+  const session = await loadSession();
+  setSessionToken(session?.token ?? null);
+  return session;
+});
+
+/**
+ * Hồ sơ của phiên hiện hành. Rỗng nghĩa là "chưa liên kết" — `HomePage` đã có
+ * sẵn màn "Chào mừng bạn" cho trạng thái đó.
+ *
+ * 401 được quy về rỗng chứ không ném ra: chưa liên kết và phiên hết hạn là hai
+ * đường dẫn tới cùng một đích, và ném lỗi ở đây làm error boundary của React
+ * Router nuốt cả cây — trắng màn hình (2026-09-01). Chỉ 401 mới được nuốt; mọi
+ * mã lỗi khác vẫn phải nổi lên để sự cố máy chủ không bị nguỵ trang thành
+ * "chưa liên kết".
+ */
+export const profilesState = atomWithRefresh(async (get) => {
+  await get(storedSessionState);
+  try {
+    const { profiles } = await api.me();
+    return profiles;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) {
+      await clearSession();
+      setSessionToken(null);
+      return [];
+    }
+    throw error;
+  }
 });
 
 /** Kho chứa thật, không xuất ra ngoài — ghi vào đây không kèm việc lưu trữ. */
@@ -42,12 +81,16 @@ export const activeProfileState = atom(async (get) => {
   return profiles.find((p) => p.patientId === activeId) ?? profiles[0] ?? null;
 });
 
-/** Nạp lại phiên đã lưu khi mở app. `Layout` gọi đúng một lần lúc mount. */
-export const hydrateSessionState = atom(null, async (_get, set) => {
-  const session = await loadSession();
-  setSessionToken(session?.token ?? null);
+/**
+ * Khôi phục hồ sơ đang xem khi mở app. `Layout` gọi đúng một lần lúc mount.
+ *
+ * Không còn nạp phiên hay làm mới `profilesState` ở đây: `storedSessionState`
+ * đã lo mã phiên và `profilesState` tự chờ nó, nên thêm một `set` nữa chỉ tạo
+ * ra lời gọi `/me` thứ hai thừa thãi.
+ */
+export const hydrateSessionState = atom(null, async (get, set) => {
+  const session = await get(storedSessionState);
   set(activePatientIdBaseState, session?.activePatientId ?? null);
-  set(profilesState);
 });
 
 /** Ghi phiên xuống kho lưu trữ sau khi liên kết thành công. */
@@ -86,9 +129,9 @@ export const departmentsState = atom(async () => api.departments());
  * của cùng một việc.
  */
 export const departmentNameState = atom(async (get) => {
-  const khoa = await get(departmentsState);
-  const bang = new Map(khoa.map((k) => [k.id, k.name]));
-  return (id: number) => bang.get(id) ?? "Chưa rõ khoa";
+  const departments = await get(departmentsState);
+  const byId = new Map(departments.map((k) => [k.id, k.name]));
+  return (id: number) => byId.get(id) ?? "Chưa rõ khoa";
 });
 
 /**

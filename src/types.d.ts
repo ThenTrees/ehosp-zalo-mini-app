@@ -147,6 +147,14 @@ export type LinkResponse = LinkChallenge | LinkSuccess;
 export interface LinkInput {
   /** Token do getPhoneNumber() của zmp-sdk trả về. Máy chủ đổi ra số thật. */
   zaloPhoneToken: string;
+  /**
+   * Token phiên của người dùng, do getAccessToken() trả về.
+   *
+   * Zalo đòi cả hai: `code` là mã dùng một lần, `access_token` chứng minh mã ấy
+   * thuộc về phiên nào. Thiếu nó — hoặc đưa app id vào chỗ nó — thì Zalo trả
+   * lỗi 452 "Session key invalid".
+   */
+  zaloAccessToken: string;
   /** YYYY-MM-DD — yếu tố thứ hai. */
   birthdate?: string;
   /** 4 số cuối thẻ BHYT — chỉ khi máy chủ yêu cầu. */

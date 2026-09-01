@@ -20,8 +20,8 @@ import {
 describe("state", () => {
   it("departmentsState trả về danh sách khoa từ tầng dữ liệu", async () => {
     const store = createStore();
-    const khoa = await store.get(departmentsState);
-    expect(khoa.map((k) => k.name)).toContain("Khoa Nội");
+    const departments = await store.get(departmentsState);
+    expect(departments.map((k) => k.name)).toContain("Khoa Nội");
   });
 
   it("appointmentsState tách riêng theo từng hồ sơ", async () => {

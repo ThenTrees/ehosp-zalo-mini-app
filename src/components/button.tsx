@@ -23,7 +23,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
  * - `danger` nền đỏ nhạt, chữ đỏ — cho huỷ lịch, huỷ liên kết.
  * - `ghost` không nền, chỉ chữ xanh.
  */
-const KIEU: Record<ButtonVariant, string> = {
+const VARIANTS: Record<ButtonVariant, string> = {
   primary: "bg-primary text-white shadow-action active:bg-primary-ink",
   secondary: "bg-primary-soft text-primary-ink active:bg-[#cddffd]",
   danger: "bg-error-soft text-error active:bg-[#ffd6d0]",
@@ -59,7 +59,7 @@ export const Button: FC<ButtonProps> = ({
       type="button"
       className={`relative flex min-h-12 items-center justify-center gap-2 rounded px-4 text-base font-semibold transition-transform active:scale-[0.98] disabled:opacity-40 disabled:shadow-none ${
         fullWidth ? "w-full" : "w-auto shrink-0"
-      } ${KIEU[variant]} ${className}`}
+      } ${VARIANTS[variant]} ${className}`}
       onClick={handleClick}
       disabled={disabled}
       {...props}

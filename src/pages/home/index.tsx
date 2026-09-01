@@ -25,7 +25,7 @@ import {
 } from "@/state";
 import { formatPrice, todayIso } from "@/utils/format";
 
-const THAO_TAC: QuickAction[] = [
+const QUICK_ACTIONS: QuickAction[] = [
   { icon: CalendarPlusIcon, label: "Đặt lịch khám", to: "/booking" },
   { icon: TicketIcon, label: "Số thứ tự", to: "/queue" },
   { icon: ClipboardIcon, label: "Lịch sử khám", to: "/records" },
@@ -51,29 +51,29 @@ export default function HomePage() {
     );
   }
 
-  const homNay = todayIso();
-  const sapToi = appointments
-    .filter((hen) => hen.status === "Scheduled" && hen.apptDate >= homNay)
+  const today = todayIso();
+  const upcoming = appointments
+    .filter((appointment) => appointment.status === "Scheduled" && appointment.apptDate >= today)
     .sort((a, b) => a.apptDate.localeCompare(b.apptDate));
 
-  const canTra = invoices.filter((hd) => !hd.paid && hd.amountDue > 0);
-  const tongCanTra = canTra.reduce((tong, hd) => tong + hd.amountDue, 0);
+  const unpaid = invoices.filter((invoice) => !invoice.paid && invoice.amountDue > 0);
+  const totalUnpaid = unpaid.reduce((sum, invoice) => sum + invoice.amountDue, 0);
 
   return (
     <div className="space-y-6 p-4">
       <StatusCard />
 
-      <QuickActions actions={THAO_TAC} />
+      <QuickActions actions={QUICK_ACTIONS} />
 
-      {canTra.length > 0 && (
+      {unpaid.length > 0 && (
         <Card accent="error" className="pl-5">
           <div className="flex items-center gap-3">
             <span className="min-w-0 flex-1">
               <span className="block text-sm text-ink-muted">
-                {canTra.length} hoá đơn chưa thanh toán
+                {unpaid.length} hoá đơn chưa thanh toán
               </span>
               <span className="mt-0.5 block text-xl font-bold text-error">
-                {formatPrice(tongCanTra)}
+                {formatPrice(totalUnpaid)}
               </span>
             </span>
             <Button
@@ -91,9 +91,9 @@ export default function HomePage() {
       <div className="space-y-3">
         <SectionHeader
           title="Lịch khám sắp tới"
-          moreTo={sapToi.length > 0 ? "/appointments" : undefined}
+          moreTo={upcoming.length > 0 ? "/appointments" : undefined}
         />
-        {sapToi.length === 0 ? (
+        {upcoming.length === 0 ? (
           <Card>
             <p className="text-sm text-ink-muted">
               Bạn chưa có lịch hẹn nào sắp tới.
@@ -107,9 +107,9 @@ export default function HomePage() {
             </Button>
           </Card>
         ) : (
-          sapToi
+          upcoming
             .slice(0, 3)
-            .map((hen) => <AppointmentCard key={hen.id} hen={hen} />)
+            .map((appointment) => <AppointmentCard key={appointment.id} appointment={appointment} />)
         )}
       </div>
     </div>

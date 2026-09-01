@@ -5,7 +5,7 @@ import type {
   VisitSummary,
 } from "@/types";
 
-export const KHOA: Department[] = [
+export const DEPARTMENTS: Department[] = [
   { id: 1, name: "Khoa Nội", description: "Khám và điều trị bệnh nội khoa" },
   { id: 2, name: "Khoa Ngoại", description: "Khám ngoại khoa, tiểu phẫu" },
   { id: 3, name: "Khoa Sản", description: "Khám phụ khoa, thai sản" },
@@ -13,7 +13,7 @@ export const KHOA: Department[] = [
 ];
 
 /** Tổng số chỗ mỗi buổi theo khoa, trước khi trừ quota kênh app. */
-export const CONG_SUAT: Record<number, { SANG: number; CHIEU: number }> = {
+export const CAPACITY: Record<number, { SANG: number; CHIEU: number }> = {
   1: { SANG: 20, CHIEU: 20 },
   2: { SANG: 10, CHIEU: 10 },
   3: { SANG: 10, CHIEU: 0 },
@@ -21,18 +21,18 @@ export const CONG_SUAT: Record<number, { SANG: number; CHIEU: number }> = {
 };
 
 /** Quota kênh app — spec D6. */
-export const QUOTA_ONLINE_PCT = 30;
+export const ONLINE_QUOTA_PCT = 30;
 
 /** Số điện thoại giả này ứng với hai hồ sơ: mẹ và con. */
-export const NGAY_SINH_HOP_LE = "1990-05-12";
+export const VALID_BIRTHDATE = "1990-05-12";
 
-export const HO_SO: PatientProfile[] = [
+export const PROFILES: PatientProfile[] = [
   {
     patientId: 101,
     patientCode: "BN0000101",
     fullName: "Nguyễn Thị Lan",
     gender: "F",
-    birthdate: NGAY_SINH_HOP_LE,
+    birthdate: VALID_BIRTHDATE,
     insuranceLast4: "4821",
   },
   {
@@ -52,7 +52,7 @@ export const HO_SO: PatientProfile[] = [
  * các lượt `DONE`: ba trạng thái ấy vẽ ra ba màu chip khác nhau, và chỉ có dữ
  * liệu đủ đa dạng mới lộ ra chuyện một nhánh trạng thái bị quên.
  */
-export const LUOT_KHAM: Record<number, VisitSummary[]> = {
+export const VISITS: Record<number, VisitSummary[]> = {
   101: [
     {
       id: 5101,
@@ -92,7 +92,7 @@ export const LUOT_KHAM: Record<number, VisitSummary[]> = {
  * khi trả về — tầng giả phải mô phỏng thứ máy chủ làm, không phải thứ bảng
  * `emr_prescription` chứa.
  */
-export const DON_THUOC: Record<number, PrescriptionSummary[]> = {
+export const PRESCRIPTIONS: Record<number, PrescriptionSummary[]> = {
   101: [
     {
       id: 7101,

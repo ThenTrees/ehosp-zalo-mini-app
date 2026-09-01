@@ -7,12 +7,12 @@
  * dữ liệu thật với dữ liệu bịa là giữ lại đúng thứ khiến người nghiệm thu không
  * phân biệt được màn hình nào đang nói thật.
  */
-export type CheDoDuLieu = "fake" | "real";
+export type DataMode = "fake" | "real";
 
 export interface RuntimeConfig {
   /** Địa chỉ gốc của API người bệnh, đã cắt dấu `/` ở cuối. */
   apiBaseUrl: string;
-  cheDo: CheDoDuLieu;
+  mode: DataMode;
   /**
    * true = KHÔNG chạm mạng chút nào.
    *
@@ -27,14 +27,14 @@ export function readRuntimeConfig(env: Record<string, unknown>): RuntimeConfig {
   const raw = String(env.VITE_USE_FAKE ?? "")
     .toLowerCase()
     .trim();
-  const cheDo: CheDoDuLieu = raw === "true" ? "fake" : "real";
+  const mode: DataMode = raw === "true" ? "fake" : "real";
   const apiBaseUrl = String(env.VITE_API_BASE_URL ?? "").replace(/\/+$/, "");
 
-  if (cheDo !== "fake" && !apiBaseUrl) {
+  if (mode !== "fake" && !apiBaseUrl) {
     throw new Error(
       "Thiếu VITE_API_BASE_URL: đặt biến này trong .env, hoặc bật VITE_USE_FAKE=true để chạy với dữ liệu giả.",
     );
   }
 
-  return { apiBaseUrl, cheDo, useFake: cheDo === "fake" };
+  return { apiBaseUrl, mode, useFake: mode === "fake" };
 }

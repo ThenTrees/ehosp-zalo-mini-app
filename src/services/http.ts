@@ -24,11 +24,37 @@ export interface RequestOptions {
  */
 export const PATIENT_SESSION_HEADER = "X-Patient-Session";
 
+/**
+ * Nhận diện tunnel ngrok bản miễn phí.
+ *
+ * ngrok free chèn một trang HTML cảnh báo trước mọi request có User-Agent
+ * giống trình duyệt — webview Zalo đúng là loại đó — nên API trả `text/html`
+ * và `response.json()` ném lỗi. Header `ngrok-skip-browser-warning` tắt trang
+ * ấy.
+ *
+ * Chỉ gắn cho tên miền ngrok, không gắn vô điều kiện: như vậy nó tự biến mất
+ * khi `VITE_API_BASE_URL` trỏ về tên miền thật, và không có mẩu công cụ phát
+ * triển nào lọt vào bản phát hành.
+ */
+const IS_NGROK_TUNNEL = /^https:\/\/[^/]+\.ngrok-free\.app(\/|$)/;
+
+/**
+ * Lỗi mang hình dạng đúng của emr-api.
+ *
+ * Bộ xử lý lỗi tập trung ở `src/index.ts` của emr-api trả `{ error, detail }`
+ * cho mọi trường hợp — 404 không có tuyến, `HttpError` có chủ đích, trùng khoá
+ * ER_DUP_ENTRY, và 500 bao trùm. Không tuyến nào trả `message`, cũng không
+ * tuyến nào trả `code`; hai tên đó do phía client tự đặt ra và vì thế `message`
+ * luôn rơi về câu mặc định.
+ *
+ * `detail` chỉ để chẩn đoán — nó có thể chứa `sqlMessage` — nên đừng bao giờ
+ * đưa thẳng ra giao diện; chỗ hiển thị cho người bệnh là `message`.
+ */
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
     message: string,
-    public readonly code?: string
+    public readonly detail?: string
   ) {
     super(message);
     this.name = "ApiError";
@@ -91,6 +117,9 @@ export async function request<T>(options: RequestOptions): Promise<T> {
   if (token) {
     headers[PATIENT_SESSION_HEADER] = token;
   }
+  if (IS_NGROK_TUNNEL.test(baseUrl)) {
+    headers["ngrok-skip-browser-warning"] = "1";
+  }
 
   const response = await fetchImpl(buildUrl(baseUrl, path, query), {
     method,
@@ -111,10 +140,10 @@ export async function request<T>(options: RequestOptions): Promise<T> {
   if (!response.ok) {
     throw new ApiError(
       response.status,
-      typeof payload?.message === "string"
-        ? payload.message
+      typeof payload?.error === "string"
+        ? payload.error
         : "Đã có lỗi xảy ra. Vui lòng thử lại.",
-      typeof payload?.code === "string" ? payload.code : undefined
+      typeof payload?.detail === "string" ? payload.detail : undefined
     );
   }
 

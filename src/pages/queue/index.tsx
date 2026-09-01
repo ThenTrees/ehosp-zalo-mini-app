@@ -8,11 +8,11 @@ import { activePatientIdState, queueState } from "@/state";
 export default function QueuePage() {
   const patientId = useAtomValue(activePatientIdState);
   const queue = useAtomValue(queueState(patientId));
-  const lamMoi = useSetAtom(queueState(patientId));
+  const refresh = useSetAtom(queueState(patientId));
 
   if (queue === null) {
     return (
-      <LinkRequired loiNhan="Liên kết hồ sơ để xem số thứ tự khám của bạn hôm nay." />
+      <LinkRequired message="Liên kết hồ sơ để xem số thứ tự khám của bạn hôm nay." />
     );
   }
 
@@ -28,7 +28,7 @@ export default function QueuePage() {
     );
   }
 
-  const conLai =
+  const ahead =
     queue.currentNumber === null ? null : queue.myNumber - queue.currentNumber;
 
   return (
@@ -48,29 +48,29 @@ export default function QueuePage() {
       </div>
 
       <Card bare>
-        <Dong nhan="Đang gọi tới số" giaTri={queue.currentNumber ?? "—"} />
-        <Dong
-          nhan="Còn trước bạn"
-          giaTri={
-            conLai === null
+        <Row label="Đang gọi tới số" value={queue.currentNumber ?? "—"} />
+        <Row
+          label="Còn trước bạn"
+          value={
+            ahead === null
               ? "—"
-              : conLai <= 0
+              : ahead <= 0
                 ? "Đến lượt bạn"
-                : `${conLai} người`
+                : `${ahead} người`
           }
         />
-        <Dong
-          nhan="Ước tính còn"
-          giaTri={
+        <Row
+          label="Ước tính còn"
+          value={
             queue.estimatedWaitMinutes === null
               ? "—"
               : `khoảng ${queue.estimatedWaitMinutes} phút`
           }
-          cuoi
+          last
         />
       </Card>
 
-      <Button variant="secondary" onClick={() => lamMoi()}>
+      <Button variant="secondary" onClick={() => refresh()}>
         <RefreshIcon width={20} height={20} />
         Làm mới
       </Button>
@@ -90,23 +90,23 @@ export default function QueuePage() {
   );
 }
 
-function Dong({
-  nhan,
-  giaTri,
-  cuoi,
+function Row({
+  label,
+  value,
+  last,
 }: {
-  nhan: string;
-  giaTri: string | number;
-  cuoi?: boolean;
+  label: string;
+  value: string | number;
+  last?: boolean;
 }) {
   return (
     <div
       className={`flex items-baseline justify-between gap-4 px-4 py-3 ${
-        cuoi ? "" : "border-b border-line"
+        last ? "" : "border-b border-line"
       }`}
     >
-      <span className="text-sm text-ink-muted">{nhan}</span>
-      <span className="text-base font-semibold text-ink">{giaTri}</span>
+      <span className="text-sm text-ink-muted">{label}</span>
+      <span className="text-base font-semibold text-ink">{value}</span>
     </div>
   );
 }

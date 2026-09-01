@@ -10,7 +10,7 @@ import {
   Card,
   EmptyState,
   StatusChip,
-  trangThaiLichHen,
+  appointmentTone,
 } from "@/components/ui";
 import {
   activePatientIdState,
@@ -18,7 +18,7 @@ import {
   appointmentsState,
   customTitleState,
 } from "@/state";
-import { formatIsoDateLong, tenBuoi } from "@/utils/format";
+import { formatIsoDateLong, sessionName } from "@/utils/format";
 import type { Appointment } from "@/types";
 
 export default function AppointmentDetailPage() {
@@ -26,43 +26,43 @@ export default function AppointmentDetailPage() {
   const patientId = useAtomValue(activePatientIdState);
 
   if (patientId === null) {
-    return <LinkRequired loiNhan="Liên kết hồ sơ để xem lịch hẹn." />;
+    return <LinkRequired message="Liên kết hồ sơ để xem lịch hẹn." />;
   }
 
-  return <NoiDung id={Number(id)} patientId={patientId} />;
+  return <Body id={Number(id)} patientId={patientId} />;
 }
 
-function NoiDung({ id, patientId }: { id: number; patientId: number }) {
+function Body({ id, patientId }: { id: number; patientId: number }) {
   const navigate = useNavigate();
-  const hen = useAtomValue(appointmentByIdState({ id, patientId }));
-  const refreshHen = useSetAtom(appointmentByIdState({ id, patientId }));
+  const appointment = useAtomValue(appointmentByIdState({ id, patientId }));
+  const refreshAppointment = useSetAtom(appointmentByIdState({ id, patientId }));
   const refreshList = useSetAtom(appointmentsState(patientId));
   const setTitle = useSetAtom(customTitleState);
-  const [dangGui, setDangGui] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const tieuDe = hen?.department.name ?? "Lịch hẹn";
+  const title = appointment?.department.name ?? "Lịch hẹn";
   useEffect(() => {
-    setTitle(tieuDe);
+    setTitle(title);
     return () => setTitle("");
-  }, [tieuDe, setTitle]);
+  }, [title, setTitle]);
 
-  async function chay(viec: () => Promise<unknown>, thongBao: string) {
-    setDangGui(true);
+  async function run(task: () => Promise<unknown>, notify: string) {
+    setSubmitting(true);
     try {
-      await viec();
-      refreshHen();
+      await task();
+      refreshAppointment();
       refreshList();
-      toast.success(thongBao);
+      toast.success(notify);
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Thao tác thất bại.",
       );
     } finally {
-      setDangGui(false);
+      setSubmitting(false);
     }
   }
 
-  if (!hen) {
+  if (!appointment) {
     return (
       <EmptyState
         icon={CalendarIcon}
@@ -80,11 +80,11 @@ function NoiDung({ id, patientId }: { id: number; patientId: number }) {
    * thay đổi". Hiện nút rồi để máy chủ từ chối là bắt người bệnh bấm để biết
    * mình không được bấm.
    */
-  const conMo = hen.status === "Scheduled";
+  const isOpen = appointment.status === "Scheduled";
 
   return (
     <div className="space-y-4 p-4">
-      <TheLichHen hen={hen} />
+      <AppointmentCard appointment={appointment} />
 
       {/*
         Mã hẹn là thứ người bệnh đọc cho nhân viên tiếp đón. Nó được cỡ chữ lớn
@@ -96,19 +96,19 @@ function NoiDung({ id, patientId }: { id: number; patientId: number }) {
           Mã lịch hẹn
         </div>
         <div className="mt-1 font-mono text-2xl font-bold tracking-widest text-primary-ink">
-          {hen.appointmentCode}
+          {appointment.appointmentCode}
         </div>
         <p className="mt-2 text-sm text-ink-muted">
           Đọc mã này cho nhân viên tại quầy tiếp đón để nhận số thứ tự.
         </p>
       </Card>
 
-      {conMo && !hen.patientConfirmed && (
+      {isOpen && !appointment.patientConfirmed && (
         <Button
-          loading={dangGui}
+          loading={submitting}
           onClick={() =>
-            chay(
-              () => api.confirmAppointment({ id: hen.id, patientId }),
+            run(
+              () => api.confirmAppointment({ id: appointment.id, patientId }),
               "Đã xác nhận lịch hẹn.",
             )
           }
@@ -117,15 +117,15 @@ function NoiDung({ id, patientId }: { id: number; patientId: number }) {
         </Button>
       )}
 
-      {conMo && (
+      {isOpen && (
         <Button
           variant="danger"
-          loading={dangGui}
+          loading={submitting}
           onClick={async () => {
-            await chay(
+            await run(
               () =>
                 api.cancelAppointment({
-                  id: hen.id,
+                  id: appointment.id,
                   patientId,
                   // Máy chủ từ chối lý do rỗng (400 "Phải nhập lý do huỷ"), nên
                   // luôn phải có một chuỗi ở đây.
@@ -148,8 +148,8 @@ function NoiDung({ id, patientId }: { id: number; patientId: number }) {
   );
 }
 
-function TheLichHen({ hen }: { hen: Appointment }) {
-  const { nhan, tone } = trangThaiLichHen(hen);
+function AppointmentCard({ appointment }: { appointment: Appointment }) {
+  const { label, tone } = appointmentTone(appointment);
 
   return (
     <Card>
@@ -157,22 +157,22 @@ function TheLichHen({ hen }: { hen: Appointment }) {
         <div className="min-w-0 flex-1">
           <div className="text-2xs text-ink-muted">Chuyên khoa</div>
           <div className="mt-0.5 text-xl font-bold text-ink">
-            {hen.department.name}
+            {appointment.department.name}
           </div>
         </div>
-        <StatusChip tone={tone}>{nhan}</StatusChip>
+        <StatusChip tone={tone}>{label}</StatusChip>
       </div>
 
       <div className="mt-4 space-y-3 border-t border-line pt-4">
         <div className="flex items-center gap-3">
           <CalendarIcon width={20} height={20} className="text-primary-ink" />
           <span className="text-base text-ink">
-            {formatIsoDateLong(hen.apptDate)}
+            {formatIsoDateLong(appointment.apptDate)}
           </span>
         </div>
         <div className="flex items-center gap-3">
           <ClockIcon width={20} height={20} className="text-primary-ink" />
-          <span className="text-base text-ink">{tenBuoi(hen.session)}</span>
+          <span className="text-base text-ink">{sessionName(appointment.session)}</span>
         </div>
       </div>
     </Card>

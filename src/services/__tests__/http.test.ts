@@ -54,6 +54,34 @@ describe("request", () => {
     expect(init.headers.Authorization).toBeUndefined();
   });
 
+  /*
+   * ngrok bản miễn phí chèn một trang HTML cảnh báo trước mọi request có
+   * User-Agent giống trình duyệt — webview Zalo chính là loại đó. Đo trên
+   * tunnel thật ngày 2026-09-01: UA của curl nhận `application/json`, UA giả
+   * lập Android nhận `text/html`. App khi ấy nhận HTML, `response.json()` ném
+   * lỗi, và người dùng thấy "Không kết nối được máy chủ" — đúng lớp lỗi đã gây
+   * trắng màn hình trước đó. Header dưới đây tắt trang chắn ấy.
+   */
+  it("gắn header bỏ qua trang chắn khi API đi qua tunnel ngrok", async () => {
+    const spy = fakeFetch(200, { ok: true });
+    await request({
+      baseUrl: "https://fdce-1234.ngrok-free.app/api/patient-app",
+      path: "/departments",
+      fetchImpl: spy,
+    });
+
+    const [, init] = callOf(spy);
+    expect(init.headers["ngrok-skip-browser-warning"]).toBe("1");
+  });
+
+  it("không gắn header ngrok khi trỏ về tên miền thật", async () => {
+    const spy = fakeFetch(200, { ok: true });
+    await request({ baseUrl: BASE, path: "/departments", fetchImpl: spy });
+
+    const [, init] = callOf(spy);
+    expect(init.headers["ngrok-skip-browser-warning"]).toBeUndefined();
+  });
+
   it("không gắn header phiên khi không có token", async () => {
     const spy = fakeFetch(200, { ok: true });
     await request({ baseUrl: BASE, path: "/departments", fetchImpl: spy });
@@ -78,11 +106,39 @@ describe("request", () => {
     expect(JSON.parse(init.body)).toEqual({ code: "HK260822123" });
   });
 
+  /*
+   * Bộ xử lý lỗi tập trung của emr-api (`src/index.ts`) trả `{ error, detail }`
+   * cho MỌI lỗi — không có `message`, không có `code`. Test này từng dựng sẵn
+   * `{ message: ... }` rồi tự nghiệm thu chính điều mình bịa ra, nên thông báo
+   * tiếng Việt của máy chủ không bao giờ tới được người dùng: 401 thật nói
+   * "Phiên đã hết hạn. Vui lòng liên kết lại." mà app hiện "Đã có lỗi xảy ra."
+   */
   it("ném ApiError kèm thông báo của máy chủ khi lỗi", async () => {
-    const spy = fakeFetch(429, { message: "Bạn đã thử quá nhiều lần." });
+    const spy = fakeFetch(429, { error: "Bạn đã thử quá nhiều lần." });
     await expect(
       request({ baseUrl: BASE, path: "/redeem", method: "POST", fetchImpl: spy })
     ).rejects.toMatchObject({ status: 429, message: "Bạn đã thử quá nhiều lần." });
+  });
+
+  it("giữ lại `detail` của máy chủ để chẩn đoán, không đưa vào thông báo", async () => {
+    const spy = fakeFetch(409, {
+      error: "Dữ liệu đã tồn tại",
+      detail: "Duplicate entry 'BN0000101'",
+    });
+    await expect(
+      request({ baseUrl: BASE, path: "/appointments", method: "POST", fetchImpl: spy })
+    ).rejects.toMatchObject({
+      status: 409,
+      message: "Dữ liệu đã tồn tại",
+      detail: "Duplicate entry 'BN0000101'",
+    });
+  });
+
+  it("lỗi thiếu trường `error` vẫn có thông báo tiếng Việt dùng được", async () => {
+    const spy = fakeFetch(500, {});
+    await expect(
+      request({ baseUrl: BASE, path: "/me", fetchImpl: spy })
+    ).rejects.toThrow(/Đã có lỗi xảy ra/);
   });
 
   it("ném ApiError với thông báo tiếng Việt khi máy chủ không trả JSON", async () => {

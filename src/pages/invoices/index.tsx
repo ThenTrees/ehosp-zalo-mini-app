@@ -13,7 +13,7 @@ import {
   PageHeading,
   SectionHeader,
   StatusChip,
-  trangThaiHoaDon,
+  invoiceTone,
 } from "@/components/ui";
 import { activePatientIdState, invoicesState } from "@/state";
 import { formatIsoDate, formatPrice } from "@/utils/format";
@@ -24,13 +24,13 @@ export default function InvoicesPage() {
   const invoices = useAtomValue(invoicesState(patientId));
 
   if (patientId === null) {
-    return <LinkRequired loiNhan="Liên kết hồ sơ để xem hoá đơn viện phí." />;
+    return <LinkRequired message="Liên kết hồ sơ để xem hoá đơn viện phí." />;
   }
 
-  const canTra = invoices.filter((hd) => !hd.paid && hd.amountDue > 0);
-  const daTra = invoices.filter((hd) => hd.paid);
-  const tongCanTra = canTra.reduce((tong, hd) => tong + hd.amountDue, 0);
-  const tongDaTra = daTra.reduce((tong, hd) => tong + hd.amountDue, 0);
+  const unpaid = invoices.filter((invoice) => !invoice.paid && invoice.amountDue > 0);
+  const paid = invoices.filter((invoice) => invoice.paid);
+  const totalUnpaid = unpaid.reduce((sum, invoice) => sum + invoice.amountDue, 0);
+  const totalPaid = paid.reduce((sum, invoice) => sum + invoice.amountDue, 0);
 
   return (
     <div>
@@ -48,26 +48,26 @@ export default function InvoicesPage() {
       ) : (
         <div className="space-y-6 p-4 pt-0">
           <div className="grid grid-cols-2 gap-3">
-            <TheThongKe
-              nhan="Cần thanh toán"
-              soTien={tongCanTra}
+            <StatTile
+              label="Cần thanh toán"
+              amount={totalUnpaid}
               tone="error"
-              chuThich={`${canTra.length} hoá đơn`}
+              caption={`${unpaid.length} hoá đơn`}
               icon={AlertCircleIcon}
             />
-            <TheThongKe
-              nhan="Đã thanh toán"
-              soTien={tongDaTra}
+            <StatTile
+              label="Đã thanh toán"
+              amount={totalPaid}
               tone="success"
-              chuThich={`${daTra.length} hoá đơn`}
+              caption={`${paid.length} hoá đơn`}
               icon={CheckCircleIcon}
             />
           </div>
 
           <div className="space-y-3">
             <SectionHeader title="Danh sách hoá đơn" />
-            {invoices.map((hoaDon) => (
-              <TheHoaDon key={hoaDon.id} hoaDon={hoaDon} />
+            {invoices.map((invoice) => (
+              <InvoiceCard key={invoice.id} invoice={invoice} />
             ))}
           </div>
         </div>
@@ -76,26 +76,26 @@ export default function InvoicesPage() {
   );
 }
 
-function TheThongKe({
-  nhan,
-  soTien,
+function StatTile({
+  label,
+  amount,
   tone,
-  chuThich,
+  caption,
   icon: Icon,
 }: {
-  nhan: string;
-  soTien: number;
+  label: string;
+  amount: number;
   tone: "error" | "success";
-  chuThich: string;
+  caption: string;
   icon: typeof AlertCircleIcon;
 }) {
   return (
     <Card>
-      <div className="text-sm text-ink-muted">{nhan}</div>
+      <div className="text-sm text-ink-muted">{label}</div>
       <div
         className={`mt-1 text-xl font-bold ${tone === "error" ? "text-error" : "text-ink"}`}
       >
-        {formatPrice(soTien)}
+        {formatPrice(amount)}
       </div>
       <div
         className={`mt-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-3xs font-semibold ${
@@ -105,40 +105,40 @@ function TheThongKe({
         }`}
       >
         <Icon width={14} height={14} />
-        {chuThich}
+        {caption}
       </div>
     </Card>
   );
 }
 
-function TheHoaDon({ hoaDon }: { hoaDon: InvoiceSummary }) {
+function InvoiceCard({ invoice }: { invoice: InvoiceSummary }) {
   const navigate = useNavigate();
-  const { nhan, tone } = trangThaiHoaDon(hoaDon);
-  const traDuoc = !hoaDon.paid && hoaDon.amountDue > 0;
+  const { label, tone } = invoiceTone(invoice);
+  const payable = !invoice.paid && invoice.amountDue > 0;
 
   return (
-    <Card accent={traDuoc ? "error" : undefined} className="pl-5">
+    <Card accent={payable ? "error" : undefined} className="pl-5">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <div className="text-base font-semibold text-ink">
-            Khám ngày {formatIsoDate(hoaDon.visitDate)}
+            Khám ngày {formatIsoDate(invoice.visitDate)}
           </div>
           <div className="mt-1">
-            <StatusChip tone={tone}>{nhan}</StatusChip>
+            <StatusChip tone={tone}>{label}</StatusChip>
           </div>
         </div>
         <div
-          className={`shrink-0 text-lg font-bold ${traDuoc ? "text-error" : "text-ink"}`}
+          className={`shrink-0 text-lg font-bold ${payable ? "text-error" : "text-ink"}`}
         >
-          {formatPrice(hoaDon.amountDue)}
+          {formatPrice(invoice.amountDue)}
         </div>
       </div>
 
-      {traDuoc && (
+      {payable && (
         <Button
           className="mt-4"
           onClick={() =>
-            navigate(`/invoices/${hoaDon.id}/qr`, { viewTransition: true })
+            navigate(`/invoices/${invoice.id}/qr`, { viewTransition: true })
           }
         >
           Lấy mã thanh toán

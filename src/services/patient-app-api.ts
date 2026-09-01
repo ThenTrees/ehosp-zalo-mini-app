@@ -57,7 +57,7 @@ export interface PatientAppApi {
  * `router.ts`, không phải lựa chọn của mini app — nên chỗ duy nhất biết sự
  * khác biệt ấy là hàm `boc()` ngay dưới đây.
  */
-interface Boc<T> {
+interface Wrapped<T> {
   results: T[];
 }
 
@@ -68,7 +68,7 @@ interface Boc<T> {
  * đổi khuôn, màn hình vẫn hiện đúng danh sách thay vì hiện rỗng — và danh sách
  * rỗng là kiểu hỏng tệ nhất ở đây, vì nó trông y hệt "bạn chưa có dữ liệu nào".
  */
-function boc<T>(payload: Boc<T> | T[] | null | undefined): T[] {
+function unwrap<T>(payload: Wrapped<T> | T[] | null | undefined): T[] {
   if (Array.isArray(payload)) {
     return payload;
   }
@@ -108,8 +108,8 @@ export function createHttpApi(
     departments: () => call("/departments", { anonymous: true }),
 
     slots: async ({ departmentId, date }) =>
-      boc(
-        await call<Boc<SlotAvailability>>("/slots", {
+      unwrap(
+        await call<Wrapped<SlotAvailability>>("/slots", {
           query: { department_id: departmentId, date },
         }),
       ),
@@ -132,8 +132,8 @@ export function createHttpApi(
       }),
 
     appointments: async ({ patientId }) =>
-      boc(
-        await call<Boc<Appointment>>("/appointments", {
+      unwrap(
+        await call<Wrapped<Appointment>>("/appointments", {
           query: { patient_id: patientId },
         }),
       ),
@@ -164,15 +164,15 @@ export function createHttpApi(
       call("/queue", { query: { patient_id: patientId } }),
 
     visits: async ({ patientId }) =>
-      boc(
-        await call<Boc<VisitSummary>>("/visits", {
+      unwrap(
+        await call<Wrapped<VisitSummary>>("/visits", {
           query: { patient_id: patientId },
         }),
       ),
 
     prescriptions: async ({ patientId }) =>
-      boc(
-        await call<Boc<PrescriptionSummary>>("/prescriptions", {
+      unwrap(
+        await call<Wrapped<PrescriptionSummary>>("/prescriptions", {
           query: { patient_id: patientId },
         }),
       ),
@@ -180,7 +180,7 @@ export function createHttpApi(
     // `/invoices` trả mảng trần — `boc()` vẫn chạy đúng, giữ lại để một lần đổi
     // khuôn ở máy chủ không làm trống màn hình hoá đơn.
     invoices: async ({ patientId }) =>
-      boc(
+      unwrap(
         await call<InvoiceSummary[]>("/invoices", {
           query: { patient_id: patientId },
         }),

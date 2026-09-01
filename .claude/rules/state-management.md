@@ -24,7 +24,7 @@ paths:
 
 Đổi sang back-end thật = đặt `VITE_USE_FAKE=false` và `VITE_API_BASE_URL` trong `.env`. Không sửa dòng mã nào. Chỉ còn **hai** chế độ — `hybrid` đã bị bỏ ngày 2026-08-30.
 
-Thân yêu cầu đi bằng **snake_case** (`patient_id`, `department_id`) vì `router.ts` của eHosp đọc như vậy; ngoại lệ duy nhất là `/unlink` nhận `patientId`. Các tuyến danh sách trả `{ results: [...] }`, riêng `/invoices` trả mảng trần — hàm `boc()` trong `patient-app-api.ts` là chỗ duy nhất biết sự khác biệt đó.
+Thân yêu cầu đi bằng **snake_case** (`patient_id`, `department_id`) vì `router.ts` của eHosp đọc như vậy; ngoại lệ duy nhất là `/unlink` nhận `patientId`. Các tuyến danh sách trả `{ results: [...] }`, riêng `/invoices` trả mảng trần — hàm `unwrap()` trong `patient-app-api.ts` là chỗ duy nhất biết sự khác biệt đó.
 
 ## Quy ước atom
 

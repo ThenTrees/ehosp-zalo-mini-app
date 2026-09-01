@@ -6,7 +6,7 @@ import {
   ClockIcon,
 } from "@/components/icons";
 import { activePatientIdState, appointmentsState, queueState } from "@/state";
-import { formatIsoDateLong, tenBuoi, todayIso } from "@/utils/format";
+import { formatIsoDateLong, sessionName, todayIso } from "@/utils/format";
 
 /**
  * Khối lớn nhất của Trang chủ. Nó trả lời đúng một câu hỏi: "ngay bây giờ tôi
@@ -54,31 +54,31 @@ export default function StatusCard() {
     );
   }
 
-  const homNay = todayIso();
-  const sapToi = appointments
-    .filter((hen) => hen.status === "Scheduled" && hen.apptDate >= homNay)
+  const today = todayIso();
+  const upcoming = appointments
+    .filter((appointment) => appointment.status === "Scheduled" && appointment.apptDate >= today)
     .sort((a, b) => a.apptDate.localeCompare(b.apptDate))[0];
 
-  if (sapToi) {
+  if (upcoming) {
     return (
       <HeroCard
         onClick={() =>
-          navigate(`/appointments/${sapToi.id}`, { viewTransition: true })
+          navigate(`/appointments/${upcoming.id}`, { viewTransition: true })
         }
       >
         <div className="text-2xs font-semibold uppercase tracking-wide text-white/80">
-          {sapToi.apptDate === homNay
+          {upcoming.apptDate === today
             ? "Lịch khám hôm nay"
             : "Lịch khám sắp tới"}
         </div>
 
-        <div className="mt-2 text-2xl font-bold">{sapToi.department.name}</div>
+        <div className="mt-2 text-2xl font-bold">{upcoming.department.name}</div>
         <div className="mt-1 text-base text-white/90">
-          {formatIsoDateLong(sapToi.apptDate)} · {tenBuoi(sapToi.session)}
+          {formatIsoDateLong(upcoming.apptDate)} · {sessionName(upcoming.session)}
         </div>
 
         <div className="mt-3 flex items-center border-t border-white/20 pt-3 text-sm text-white/90">
-          {sapToi.patientConfirmed
+          {upcoming.patientConfirmed
             ? "Bạn đã xác nhận sẽ đến khám"
             : "Chạm để xác nhận sẽ đến khám"}
           <ChevronRightIcon width={18} height={18} className="ml-auto" />

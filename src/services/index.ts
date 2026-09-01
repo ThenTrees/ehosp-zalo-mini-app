@@ -14,18 +14,18 @@ export const runtimeConfig = readRuntimeConfig({
 });
 
 /** Mã phiên hiện hành, do state.ts cập nhật sau khi liên kết. */
-let phienHienTai: string | null = null;
+let currentSessionToken: string | null = null;
 
 export function setSessionToken(token: string | null): void {
-  phienHienTai = token;
+  currentSessionToken = token;
 }
 
-function chonApi(): PatientAppApi {
-  return runtimeConfig.cheDo === "fake"
+function chooseApi(): PatientAppApi {
+  return runtimeConfig.mode === "fake"
     ? createFakeApi()
-    : createHttpApi(runtimeConfig.apiBaseUrl, () => phienHienTai);
+    : createHttpApi(runtimeConfig.apiBaseUrl, () => currentSessionToken);
 }
 
-export const api: PatientAppApi = chonApi();
+export const api: PatientAppApi = chooseApi();
 
 export type { PatientAppApi };

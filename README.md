@@ -1,172 +1,170 @@
-# ZaUI Doctor
+# Mini App người bệnh — Phòng khám phường Sài Gòn
 
-<p style="display: flex; flex-wrap: wrap; gap: 4px">
-  <img alt="vite" src="https://img.shields.io/github/package-json/dependency-version/Zalo-MiniApp/zaui-doctor/dev/vite" />
-  <img alt="react" src="https://img.shields.io/github/package-json/dependency-version/Zalo-MiniApp/zaui-doctor/react" />
-  <img alt="zmp-ui" src="https://img.shields.io/github/package-json/dependency-version/Zalo-MiniApp/zaui-doctor/zmp-ui" />
-  <img alt="zmp-sdk" src="https://img.shields.io/github/package-json/dependency-version/Zalo-MiniApp/zaui-doctor/zmp-sdk" />
-  <img alt="jotai" src="https://img.shields.io/github/package-json/dependency-version/Zalo-MiniApp/zaui-doctor/jotai" />
-  <img alt="tailwindcss" src="https://img.shields.io/github/package-json/dependency-version/Zalo-MiniApp/zaui-doctor/dev/tailwindcss" />
-</p>
+Zalo Mini App cho **người bệnh**, là bề mặt thứ hai của hệ EMR ở
+[`eHosp`](../../eHosp) — không phải một hệ thống lưu trữ riêng. Mọi dữ liệu đến
+từ `emr-api` qua hợp đồng `/api/patient-app`.
 
-A Zalo Mini App template perfect for hospitals, clinics, and healthcare providers looking to digitize their services.
+React 18 · TypeScript · Vite 5 · `zmp-ui` · Jotai · Tailwind + SCSS.
+Toàn bộ chữ hiển thị là **tiếng Việt**; định danh trong mã là tiếng Anh.
 
-|                      Demo                       |                  Entrypoint                  |
-| :---------------------------------------------: | :------------------------------------------: |
-| <img src="./docs/preview.webp" alt="Home page"> | <img src="./docs/qr.webp" alt="Entry point"> |
+> **Cố ý không hiển thị nội dung lâm sàng.** Không chẩn đoán, không kết quả xét
+> nghiệm, không tên thuốc, không liều dùng. Sổ sức khoẻ điện tử trên VNeID đã
+> làm việc đó và có giá trị pháp lý tương đương bản giấy (QĐ 31/QĐ-BYT,
+> 06/01/2026). Ranh giới này được canh bằng test:
+> `src/services/__tests__/no-clinical-content.test.ts`.
 
-## Features
+---
 
-- 3 forms: Booking form, Ask a question form, and Feedback form with support for multi-image upload.
-- Search functionality for doctors, departments, and news
-- List of services, departments, and news
-- Schedule and invoice management
-- Chat with Zalo OA
-- Profile page
+## Màn hình
 
-## Setup
+Ảnh chụp từ bản chạy thật ở chế độ dữ liệu giả (`VITE_USE_FAKE=true`).
 
-### Using Zalo Mini App Extension
+### Liên kết tài khoản
 
-1. Install [Visual Studio Code](https://code.visualstudio.com/download) and [Zalo Mini App Extension](https://mini.zalo.me/docs/dev-tools).
-1. Click on **Create Project** > Choose **ZaUI Doctor** template > Wait until the generated project is ready.
-1. **Configure App ID** and **Install Dependencies**, then navigate to the **Run** panel > **Start** to develop your Mini App 🚀
+Người bệnh không có tài khoản trong hệ thống. Liên kết đi bằng số điện thoại
+Zalo **cộng một yếu tố thứ hai** — vì số trong hồ sơ có thể là của người nhà.
 
-### Using Zalo Mini App CLI
+| Chưa liên kết | Bắt đầu liên kết | Xác minh ngày sinh |
+| :---: | :---: | :---: |
+| <img src="./docs/screenshots/01-welcome.png" width="240" alt="Màn chào mừng khi chưa liên kết"> | <img src="./docs/screenshots/02-link.png" width="240" alt="Màn liên kết hồ sơ"> | <img src="./docs/screenshots/03-link-birthdate.png" width="240" alt="Nhập ngày sinh để xác minh"> |
 
-> **Note:** Vite 5 compatibility in CLI is under development. Until then, please use the Zalo Mini App Extension.
+Zalo chỉ trả về một **mã dùng một lần**, không trả số điện thoại. Máy chủ đổi mã
+đó ra số thật bằng secret key — secret key không bao giờ nằm trong mini app.
 
-1. [Install Node JS](https://nodejs.org/en/download/).
-1. [Install Zalo Mini App CLI](https://mini.zalo.me/docs/dev-tools/cli/intro/).
-1. **Download** or **clone** this repository.
-1. **Install dependencies**:
-   ```bash
-   npm install
-   ```
-1. **Start** the dev server using `zmp-cli`:
-   ```bash
-   zmp start
-   ```
-1. **Open** `localhost:3000` in your browser and start coding 🔥
+### Trang chủ
 
-### Using Zalo Mini App Studio
+<img src="./docs/screenshots/04-home.png" width="260" alt="Trang chủ với thẻ số thứ tự, thao tác nhanh và hoá đơn chưa thanh toán">
 
-This template is built using **Vite 5.x**, which is **not compatible** with Zalo Mini App Studio.
+Thẻ trạng thái đầu trang là **số thứ tự hôm nay** — số của bạn, số đang gọi, và
+ước tính thời gian chờ. Số thứ tự không có tab riêng.
 
-## Deployment
+### Đặt lịch khám
 
-1. **Create** a Zalo Mini App ID. For instructions, please refer to the [Coffee Shop Tutorial](https://mini.zalo.me/tutorial/coffee-shop/step-1/).
+Ba bước: chuyên khoa → ngày và buổi → xác nhận. Không chọn bác sĩ cụ thể —
+phòng khám phân công bác sĩ trực của buổi đã chọn.
 
-1. **Deploy** your mini program to Zalo using the ID created.
+| 1. Chuyên khoa | 2. Ngày và buổi | 3. Xác nhận |
+| :---: | :---: | :---: |
+| <img src="./docs/screenshots/05-booking-step1.png" width="240" alt="Chọn chuyên khoa"> | <img src="./docs/screenshots/06-booking-step2.png" width="240" alt="Chọn ngày và buổi khám"> | <img src="./docs/screenshots/07-booking-step3.png" width="240" alt="Xác nhận thông tin đặt lịch"> |
 
-   If you're using Zalo Mini App Extension: navigate to the Deploy panel > Login > Deploy.
+### Lịch hẹn và số thứ tự
 
-   If you're using `zmp-cli`:
+| Lịch hẹn của tôi | Chi tiết lịch hẹn | Số thứ tự |
+| :---: | :---: | :---: |
+| <img src="./docs/screenshots/08-appointments.png" width="240" alt="Danh sách lịch hẹn"> | <img src="./docs/screenshots/09-appointment-detail.png" width="240" alt="Chi tiết lịch hẹn với mã hẹn, nút xác nhận và huỷ"> | <img src="./docs/screenshots/10-queue.png" width="240" alt="Số thứ tự hôm nay"> |
 
-   ```bash
-   zmp login
-   zmp deploy
-   ```
+Mã lịch hẹn hiển thị để đọc cho quầy tiếp đón, nhưng **không bao giờ nằm trong
+URL**: `buildUrl()` ném lỗi nếu ai đó đưa `code`/`token` vào query string, và có
+test canh chừng (spec §6.2).
 
-1. Scan the **QR code** using Zalo to preview your mini program.
+### Lịch sử khám, hoá đơn, hồ sơ
 
-## Usage
+| Lịch sử khám | Hoá đơn | Mã VietQR | Hồ sơ |
+| :---: | :---: | :---: | :---: |
+| <img src="./docs/screenshots/11-records.png" width="200" alt="Lịch sử khám: lượt khám và đơn thuốc, chỉ trạng thái"> | <img src="./docs/screenshots/12-invoices.png" width="200" alt="Danh sách hoá đơn"> | <img src="./docs/screenshots/14-invoice-qr.png" width="200" alt="Mã VietQR để thanh toán"> | <img src="./docs/screenshots/13-profiles.png" width="200" alt="Danh sách hồ sơ đã liên kết"> |
 
-The repository contains sample UI components and features for building your healthcare application. You may modify the code to suit your specific healthcare needs.
+**Lịch sử khám** cố ý không mang tên "Bệnh án": nó chỉ hiện *ngày, khoa, mã lượt
+khám, trạng thái* và *mã đơn, ngày kê, trạng thái phát thuốc* — không hơn.
 
-Here are some recipes and instructions on how to customize the application.
+Một tài khoản Zalo liên kết được **nhiều hồ sơ** (bố mẹ đặt lịch cho con), và
+huỷ liên kết được rồi liên kết lại được.
 
-### Register a new page
+---
 
-To register a new page:
+## Phạm vi giai đoạn 1
 
-1. Create a new folder in `src/pages/`.
-2. Create an `index.tsx` file containing a `*Page` component.
-3. Register the page in `src/router.tsx`:
+**Trong phạm vi:** liên kết tài khoản · đặt lịch khám · lịch hẹn của tôi · số
+thứ tự · lịch sử khám (chỉ siêu dữ liệu) · hoá đơn và mã VietQR.
 
-   ```tsx
-   {
-      path: "/payment-result",
-      element: <PaymentResultPage />,
-      handle: {
-         back: true, // If the page has a back button
-         title: "Giao dịch hoàn tất", // The title to be shown on the header
-      },
-   }
-   ```
+**Ngoài phạm vi, cố ý:** nội dung lâm sàng · chọn bác sĩ cụ thể · khám từ xa ·
+phát hành lên App Store / Google Play. Thông báo "kết quả đã có", đường web dự
+phòng và ZNS nhắc hẹn thuộc **giai đoạn 2**.
 
-4. Sections of a page can be split into components in the same folder. For example: `src/pages/payment-result/tab1.tsx`, `src/pages/payment-result/tab2.tsx`,...
+---
 
-### Load data from your server
+## Chạy trên máy
 
-Data are loaded into view using Jotai's state, called [atoms](https://jotai.org/docs/core/atom). You can change how data are loaded without changing the UI by replacing `src/state.ts`:
-
-```diff
-- export const doctorsState = atom<Promise<Doctor[]>>(mockDoctors);
-+ export const doctorsState = atom<Promise<Doctor[]>>(async () => {
-+   const response = await fetch("https://");
-+   return response.json();
-+ });
+```bash
+npm install
+npm start            # zmp start -P 3002 -> khung Zalo :3002, app thật :3001
+npm test             # vitest run
+npm run typecheck    # tsc --noEmit
 ```
 
-As long as the new data satisfies the given TypeScript interface (for example, `Doctor`), no changes to the UI are required. Otherwise, feel free to refactor the interfaces and the UI to suit your DTO.
+Mở **`http://localhost:3002`**.
 
-### Handle form submission
+> `zmp start -P N` chiếm **hai** cổng: N phục vụ khung điện thoại Zalo, N−1 phục
+> vụ app thật (khung nhúng iframe trỏ tới `port - 1`). Cả hai phải tránh 3000 —
+> cổng của `emr-api` — nên dự án dùng 3002.
 
-Modify the `onSubmit` logic in the form you want to handle submission. For example:
+### Hai chế độ dữ liệu
 
-```diff tsx filename="src/pages/booking/step2.tsx"
-onSubmit={async () => {
--   await wait(1500);
--   promptJSON(formData);
-+   const response = await fetch("https://", {
-+      method: "POST",
-+      headers: {
-+      "Content-Type": "application/json",
-+      },
-+      body: JSON.stringify(formData),
-+   });
-   navigate("/booking/3", {
-      viewTransition: true,
-   });
-}}
-```
+| `.env` | Nguồn dữ liệu |
+|---|---|
+| `VITE_USE_FAKE=true` | Tầng dữ liệu giả trong `src/services/fake/`. Không chạm mạng, không cần máy chủ. Ngày sinh để liên kết thử: **`1990-05-12`** |
+| `VITE_USE_FAKE=false` + `VITE_API_BASE_URL` | `emr-api` thật |
 
-### Change header title
+Chỉ có hai chế độ; không trộn lẫn. Đổi chế độ **không cần sửa dòng mã nào**.
 
-Modify `app-config.json` > `app.title` field.
+Trỏ `VITE_API_BASE_URL` vào `127.0.0.1`, đừng dùng `localhost`: `zmp` bind `::1`
+còn Docker bind `127.0.0.1`, nên `localhost` phân giải sang IPv6 trước và lời gọi
+API đi ngược vào chính dev server.
 
-```json
-{
-   "app": {
-      "title": "ZaUI Doctor",
-```
+### Cần gì cho máy chủ thật
 
-### Change OA ID
+- `emr-api` chạy, và `CORS_ORIGINS` trong `eHosp/.env` có origin của app —
+  `http://localhost:3001` khi phát triển, `https://h5.zdn.vn` là origin webview
+  Zalo. Để trống nghĩa là **không nạp middleware CORS chút nào**, và mọi lời gọi
+  chết ở bước preflight vì client gửi header `X-Patient-Session`.
+- `ZALO_APP_ID` và `ZALO_APP_SECRET` trong `eHosp/.env` để đổi mã
+  `getPhoneNumber()` ra số điện thoại. Thiếu chúng ở `NODE_ENV=production` thì
+  `/link` trả 503.
 
-There is a CTA block to chat with Zalo OA. To change the Zalo OA for chat, modify `app-config.json` > `template.oaID` field:
+---
 
-```json
-{
-   "template": {
-      "name": "zaui-doctor",
-      "oaID": "4318657068771012646"
-```
+## Kiến trúc
 
-### Customization
+**Entry:** `index.html` → `src/app.ts` → `src/router.tsx`.
+Vite `root` là `./src`, nên `index.html` và `app-config.json` nằm trên một cấp.
 
-This template can be customized by changing 5 main colors in `src/css/app.scss`:
+| Tầng | Vai trò |
+|---|---|
+| `src/services/` | Tầng **duy nhất** chạm mạng. `http.ts` + `patient-app-api.ts` (hợp đồng §6) + `fake/` |
+| `src/state.ts` | Ranh giới duy nhất giữa UI và dữ liệu. Trang chỉ đọc atom Jotai |
+| `src/pages/` | Mỗi trang một thư mục, xuất component `*Page` |
+| `src/components/ui/` | Bộ UI dùng chung: `Card`, `StatusChip`, `ListRow`, `EmptyState`… |
 
-```css
-:root {
-  --primary: #00abbb;
-  --primary-gradient: #00bead;
-  --highlight: #01bdaf1a;
-  --background: #f2f9f9;
-  --disabled: #9a9a9a;
-```
+Mọi atom đọc dữ liệu người bệnh là `atomFamily` khoá theo `patientId` — chuyển
+hồ sơ người thân không được lẫn dữ liệu.
 
-| `--primary: #31992c`                      | `--primary: #992c2c`                          |
-| ----------------------------------------- | --------------------------------------------- |
-| ![Red](./docs/customise-red.webp)         | ![Green](./docs/customise-green.webp)         |
-| ![Red](./docs/customise-red-booking.webp) | ![Green](./docs/customise-green-booking.webp) |
+`npm test` và `npm run typecheck` là hai cổng kiểm tra; chạy cả hai trước mỗi
+commit. Test phủ `src/services`; các trang kiểm bằng cách chạy thật.
+
+**`npx vite build` trần không chạy được** — `index.html` ở thư mục gốc trong khi
+Vite `root` là `./src`. Build đi qua `zmp deploy`. `www/` là kết quả build,
+không bao giờ sửa tay.
+
+---
+
+## Phát hành
+
+1. `npm run login` — cần một lần, sinh `ZMP_TOKEN`.
+2. Đặt `VITE_API_BASE_URL` trỏ tới tên miền HTTPS thật. Giá trị này được **nhúng
+   cứng vào bundle lúc build**, nên đổi địa chỉ là phải deploy lại.
+3. Khai tên miền đó trong Mini App Center.
+4. Kiểm `VITE_USE_FAKE=false` — phát hành với `true` là phát hành dữ liệu bệnh
+   nhân bịa cho người dùng thật.
+5. `npm run deploy`.
+
+Webview Zalo **chặn HTTP**, nên back-end bắt buộc phải có HTTPS.
+
+---
+
+## Tài liệu
+
+| Tài liệu | Ở đâu |
+|---|---|
+| Thiết kế GĐ1 | `docs/superpowers/specs/2026-08-22-zalo-mini-app-gd1-design.md` |
+| Kế hoạch triển khai | `docs/superpowers/plans/` |
+| Thiết kế mô-đun gốc | `eHosp/docs/09-THIET-KE-DICH-VU/12-MOBILE-APP.md` |
+| Hướng dẫn cho Claude Code | `CLAUDE.md` và `.claude/rules/` |

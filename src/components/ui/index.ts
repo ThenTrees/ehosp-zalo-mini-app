@@ -8,9 +8,9 @@ export { default as SectionHeader } from "./section-header";
 export { default as Segmented } from "./segmented";
 export {
   default as StatusChip,
-  trangThaiDonThuoc,
-  trangThaiHoaDon,
-  trangThaiLichHen,
-  trangThaiLuotKham,
+  prescriptionTone,
+  invoiceTone,
+  appointmentTone,
+  visitTone,
 } from "./status-chip";
 export type { Tone } from "./status-chip";

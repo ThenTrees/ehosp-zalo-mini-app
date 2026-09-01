@@ -1,6 +1,6 @@
 import { useAtomValue } from "jotai";
 import { ChevronRightIcon } from "@/components/icons";
-import { Card, StatusChip, trangThaiLuotKham } from "@/components/ui";
+import { Card, StatusChip, visitTone } from "@/components/ui";
 import { departmentNameState } from "@/state";
 import { formatIsoDateLong } from "@/utils/format";
 import type { VisitSummary } from "@/types";
@@ -13,31 +13,31 @@ import type { VisitSummary } from "@/types";
  * đọc cho nhân viên nghe.
  */
 export default function VisitCard({
-  luot,
+  visit,
   onClick,
 }: {
-  luot: VisitSummary;
+  visit: VisitSummary;
   onClick?: () => void;
 }) {
-  const tenKhoa = useAtomValue(departmentNameState);
-  const { nhan, tone } = trangThaiLuotKham(luot);
+  const departmentName = useAtomValue(departmentNameState);
+  const { label, tone } = visitTone(visit);
 
-  const noiDung = (
+  const content = (
     <>
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <div className="text-base font-semibold text-ink">
-            {formatIsoDateLong(luot.visitDate)}
+            {formatIsoDateLong(visit.visitDate)}
           </div>
           <div className="mt-0.5 truncate text-sm text-ink-muted">
-            {tenKhoa(luot.departmentId)}
+            {departmentName(visit.departmentId)}
           </div>
         </div>
-        <StatusChip tone={tone}>{nhan}</StatusChip>
+        <StatusChip tone={tone}>{label}</StatusChip>
       </div>
       <div className="mt-3 flex items-center gap-1 border-t border-line pt-3">
         <span className="min-w-0 flex-1 truncate font-mono text-2xs text-ink-muted">
-          {luot.visitCode}
+          {visit.visitCode}
         </span>
         {onClick && (
           <ChevronRightIcon
@@ -51,7 +51,7 @@ export default function VisitCard({
   );
 
   if (!onClick) {
-    return <Card>{noiDung}</Card>;
+    return <Card>{content}</Card>;
   }
 
   return (
@@ -60,7 +60,7 @@ export default function VisitCard({
       onClick={onClick}
       className="block w-full text-left active:scale-[0.99]"
     >
-      <Card>{noiDung}</Card>
+      <Card>{content}</Card>
     </button>
   );
 }

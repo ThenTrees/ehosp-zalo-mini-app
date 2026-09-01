@@ -1,95 +1,95 @@
 import type { PatientAppApi } from "../patient-app-api";
 import type { Appointment, InvoiceSummary, Session } from "@/types";
 import {
-  CONG_SUAT,
-  DON_THUOC,
-  HO_SO,
-  KHOA,
-  LUOT_KHAM,
-  NGAY_SINH_HOP_LE,
-  QUOTA_ONLINE_PCT,
+  CAPACITY,
+  PRESCRIPTIONS,
+  PROFILES,
+  DEPARTMENTS,
+  VISITS,
+  VALID_BIRTHDATE,
+  ONLINE_QUOTA_PCT,
 } from "./data";
 
-const TRE = 300;
-const doiMotChut = () => new Promise((r) => setTimeout(r, TRE));
+const DELAY_MS = 300;
+const delay = () => new Promise((r) => setTimeout(r, DELAY_MS));
 
-const DANG_MO: Appointment["status"][] = ["Scheduled", "CheckedIn"];
+const OPEN_STATUSES: Appointment["status"][] = ["Scheduled", "CheckedIn"];
 
 export function createFakeApi(): PatientAppApi {
-  const lichHen: Appointment[] = [];
-  let idTiepTheo = 1;
-  let daLienKet = false;
+  const appointments: Appointment[] = [];
+  let nextId = 1;
+  let linked = false;
 
-  const khoaTheoId = (id: number) => {
-    const khoa = KHOA.find((k) => k.id === id);
-    if (!khoa) {
+  const departmentById = (id: number) => {
+    const department = DEPARTMENTS.find((k) => k.id === id);
+    if (!department) {
       throw new Error("Không tìm thấy chuyên khoa.");
     }
-    return khoa;
+    return department;
   };
 
-  const daGiu = (departmentId: number, date: string, session: Session) =>
-    lichHen.filter(
+  const booked = (departmentId: number, date: string, session: Session) =>
+    appointments.filter(
       (h) =>
         h.department.id === departmentId &&
         h.apptDate === date &&
         h.session === session &&
-        DANG_MO.includes(h.status),
+        OPEN_STATUSES.includes(h.status),
     ).length;
 
-  const choMoChoApp = (departmentId: number, session: Session) =>
+  const appQuota = (departmentId: number, session: Session) =>
     Math.floor(
-      ((CONG_SUAT[departmentId]?.[session] ?? 0) * QUOTA_ONLINE_PCT) / 100,
+      ((CAPACITY[departmentId]?.[session] ?? 0) * ONLINE_QUOTA_PCT) / 100,
     );
 
-  const conLai = (departmentId: number, date: string, session: Session) =>
-    choMoChoApp(departmentId, session) - daGiu(departmentId, date, session);
+  const remaining = (departmentId: number, date: string, session: Session) =>
+    appQuota(departmentId, session) - booked(departmentId, date, session);
 
   /**
    * Mô phỏng hai chốt của máy chủ: phải có phiên, và hồ sơ phải thuộc phiên đó.
    * Chúng là thứ duy nhất ngăn một phiên hợp lệ đọc hồ sơ người khác, nên tầng
    * giả phải có chúng — nếu không, lỗi quên `patient_id` chỉ lộ ra ở production.
    */
-  const buocXacMinh = (patientId: number) => {
-    if (!daLienKet) {
+  const assertScope = (patientId: number) => {
+    if (!linked) {
       throw new Error("Vui lòng liên kết tài khoản trước.");
     }
-    if (!HO_SO.some((h) => h.patientId === patientId)) {
+    if (!PROFILES.some((h) => h.patientId === patientId)) {
       throw new Error("Hồ sơ không thuộc tài khoản này.");
     }
   };
 
-  const timHen = (id: number, patientId: number) => {
-    buocXacMinh(patientId);
-    const hen = lichHen.find((h) => h.id === id && h.patientId === patientId);
-    if (!hen) {
+  const findAppointment = (id: number, patientId: number) => {
+    assertScope(patientId);
+    const appointment = appointments.find((h) => h.id === id && h.patientId === patientId);
+    if (!appointment) {
       throw new Error("Không tìm thấy lịch hẹn.");
     }
-    return hen;
+    return appointment;
   };
 
   return {
     async link(input) {
-      await doiMotChut();
+      await delay();
       if (!input.birthdate) {
         return { outcome: "CHALLENGE", need: "BIRTHDATE" };
       }
-      if (input.birthdate !== NGAY_SINH_HOP_LE) {
+      if (input.birthdate !== VALID_BIRTHDATE) {
         // Cùng một thông báo cho mọi kiểu sai — spec §5.4.
         throw new Error("Thông tin không khớp. Vui lòng kiểm tra lại.");
       }
-      daLienKet = true;
-      return { outcome: "LINKED", token: "phien-gia", profiles: [...HO_SO] };
+      linked = true;
+      return { outcome: "LINKED", token: "phien-gia", profiles: [...PROFILES] };
     },
 
     async me() {
-      await doiMotChut();
-      return { profiles: daLienKet ? [...HO_SO] : [] };
+      await delay();
+      return { profiles: linked ? [...PROFILES] : [] };
     },
 
     async departments() {
-      await doiMotChut();
-      return [...KHOA];
+      await delay();
+      return [...DEPARTMENTS];
     },
 
     /*
@@ -98,96 +98,96 @@ export function createFakeApi(): PatientAppApi {
      * chạy được ở đâu đó, nếu không nó sẽ mục đi mà không ai biết.
      */
     async slots({ departmentId, date }) {
-      await doiMotChut();
-      const buoi: Session[] = ["SANG", "CHIEU"];
-      return buoi.map((session) => ({
+      await delay();
+      const sessions: Session[] = ["SANG", "CHIEU"];
+      return sessions.map((session) => ({
         date,
         session,
-        available: conLai(departmentId, date, session) > 0,
+        available: remaining(departmentId, date, session) > 0,
       }));
     },
 
     async createAppointment(input) {
-      await doiMotChut();
-      buocXacMinh(input.patientId);
+      await delay();
+      assertScope(input.patientId);
 
-      const dangMo = lichHen.filter(
-        (h) => h.patientId === input.patientId && DANG_MO.includes(h.status),
+      const open = appointments.filter(
+        (h) => h.patientId === input.patientId && OPEN_STATUSES.includes(h.status),
       ).length;
-      if (dangMo >= 2) {
+      if (open >= 2) {
         throw new Error("Hồ sơ đã có tối đa 2 lịch hẹn đang mở.");
       }
       if (
-        lichHen.some(
+        appointments.some(
           (h) =>
             h.patientId === input.patientId &&
             h.apptDate === input.date &&
-            DANG_MO.includes(h.status),
+            OPEN_STATUSES.includes(h.status),
         )
       ) {
         throw new Error("Hồ sơ đã có lịch hẹn trong ngày này.");
       }
-      if (conLai(input.departmentId, input.date, input.session) <= 0) {
+      if (remaining(input.departmentId, input.date, input.session) <= 0) {
         throw new Error(
           "Buổi này đã hết chỗ đặt trực tuyến. Vui lòng chọn buổi khác.",
         );
       }
 
-      const id = idTiepTheo++;
-      const hen: Appointment = {
+      const id = nextId++;
+      const appointment: Appointment = {
         id,
         appointmentCode: `HK${input.date.replace(/-/g, "").slice(2)}${String(id).padStart(4, "0")}`,
         patientId: input.patientId,
-        department: khoaTheoId(input.departmentId),
+        department: departmentById(input.departmentId),
         apptDate: input.date,
         session: input.session,
         status: "Scheduled",
         patientConfirmed: false,
       };
-      lichHen.push(hen);
-      return { ...hen };
+      appointments.push(appointment);
+      return { ...appointment };
     },
 
     async appointments({ patientId }) {
-      await doiMotChut();
-      buocXacMinh(patientId);
-      return lichHen
+      await delay();
+      assertScope(patientId);
+      return appointments
         .filter((h) => h.patientId === patientId)
         .map((h) => ({ ...h }))
         .sort((a, b) => b.apptDate.localeCompare(a.apptDate));
     },
 
     async appointment({ id, patientId }) {
-      await doiMotChut();
-      return { ...timHen(id, patientId) };
+      await delay();
+      return { ...findAppointment(id, patientId) };
     },
 
     async confirmAppointment({ id, patientId }) {
-      await doiMotChut();
-      const hen = timHen(id, patientId);
-      if (hen.status !== "Scheduled") {
+      await delay();
+      const appointment = findAppointment(id, patientId);
+      if (appointment.status !== "Scheduled") {
         throw new Error("Lịch hẹn không còn có thể thay đổi.");
       }
-      hen.patientConfirmed = true;
-      return { ...hen };
+      appointment.patientConfirmed = true;
+      return { ...appointment };
     },
 
     async cancelAppointment({ id, patientId, reason }) {
-      await doiMotChut();
-      const hen = timHen(id, patientId);
-      if (hen.status !== "Scheduled") {
+      await delay();
+      const appointment = findAppointment(id, patientId);
+      if (appointment.status !== "Scheduled") {
         throw new Error("Lịch hẹn không còn có thể thay đổi.");
       }
       if (!reason.trim()) {
         throw new Error("Phải nhập lý do huỷ.");
       }
-      hen.status = "Cancelled";
-      return { ...hen };
+      appointment.status = "Cancelled";
+      return { ...appointment };
     },
 
     async queue({ patientId }) {
-      await doiMotChut();
-      buocXacMinh(patientId);
+      await delay();
+      assertScope(patientId);
       return {
         patientId,
         myNumber: 27,
@@ -198,20 +198,20 @@ export function createFakeApi(): PatientAppApi {
     },
 
     async visits({ patientId }) {
-      await doiMotChut();
-      buocXacMinh(patientId);
-      return (LUOT_KHAM[patientId] ?? []).map((lk) => ({ ...lk }));
+      await delay();
+      assertScope(patientId);
+      return (VISITS[patientId] ?? []).map((visit) => ({ ...visit }));
     },
 
     async prescriptions({ patientId }) {
-      await doiMotChut();
-      buocXacMinh(patientId);
-      return (DON_THUOC[patientId] ?? []).map((dt) => ({ ...dt }));
+      await delay();
+      assertScope(patientId);
+      return (PRESCRIPTIONS[patientId] ?? []).map((prescription) => ({ ...prescription }));
     },
 
     async invoices({ patientId }) {
-      await doiMotChut();
-      buocXacMinh(patientId);
+      await delay();
+      assertScope(patientId);
       const list: InvoiceSummary[] = [
         { id: 9001, visitDate: "2026-08-14", amountDue: 42000, paid: false },
         { id: 9002, visitDate: "2026-07-02", amountDue: 0, paid: true },
@@ -220,7 +220,7 @@ export function createFakeApi(): PatientAppApi {
     },
 
     async invoiceQr(id) {
-      await doiMotChut();
+      await delay();
       return {
         invoiceId: id,
         qrContent: `VIETQR|HOADON|${id}`,
@@ -230,8 +230,8 @@ export function createFakeApi(): PatientAppApi {
     },
 
     async unlink() {
-      await doiMotChut();
-      daLienKet = false;
+      await delay();
+      linked = false;
     },
   };
 }

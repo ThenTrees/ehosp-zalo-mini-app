@@ -2,7 +2,7 @@
 
 ```bash
 npm install
-npm start            # zmp start -> dev server on localhost:3000
+npm start            # zmp start -P 3002 -> Zalo frame :3002, real app :3001
 npm test             # vitest run -> unit tests for src/services
 npm run typecheck    # tsc --noEmit -p tsconfig.json
 npm run format       # prettier --write src/**/*.{js,jsx,ts,tsx}
@@ -15,20 +15,23 @@ npm run deploy       # zmp deploy -> publishes to Zalo, output goes to www/
 - `npx vite build` alone does **not** work: `index.html` sits at the project root while Vite's `root` is `./src`. Building goes through `zmp deploy`.
 - `zmp start` / `zmp deploy` need the [Zalo Mini App CLI](https://mini.zalo.me/docs/dev-tools/cli/intro/) plus `APP_ID` / `ZMP_TOKEN` in `.env` (gitignored).
 - Vite 5 is not fully supported by the CLI or by Zalo Mini App Studio — the VS Code **Zalo Mini App Extension** (Run panel > Start) is the supported dev path.
+- `zmp start -P N` binds **two** ports: N serves the Zalo phone frame, N-1 serves the real app (the frame embeds an iframe at `port - 1`). Both must avoid 3000, which belongs to emr-api — hence 3002.
+- Point `VITE_API_BASE_URL` at `127.0.0.1`, not `localhost`: zmp binds `::1` while Docker binds `127.0.0.1`, so `localhost` resolves to IPv6 first and API calls loop back into the dev server, which answers every path with `index.html`.
+- emr-api needs `CORS_ORIGINS=http://localhost:3001` in `d:/projects/eHosp/.env` — the app's origin. Empty means no CORS middleware at all, and every call dies at preflight because the client sends `X-Patient-Session`.
 - `www/` is build output; never edit it.
 
 ## Đối chiếu với emr-api thật
 
 `npm test` chạy trên tầng dữ liệu giả và **không** cần máy chủ. Bên cạnh đó có
 một bộ đối chiếu chỉ chạy khi được cấp máy chủ + phiên thật —
-`src/services/__tests__/doi-chieu-that.test.ts`, tự bỏ qua khi thiếu biến môi
+`src/services/__tests__/contract-parity.test.ts`, tự bỏ qua khi thiếu biến môi
 trường, nên nó không làm hỏng CI.
 
 ```bash
-EMR_API_URL=http://127.0.0.1:3010/api/patient-app \
+EMR_API_URL=http://127.0.0.1:3000/api/patient-app \
 EMR_PATIENT_SESSION=<mã phiên> \
 EMR_PATIENT_ID=<mã hồ sơ> \
-npx vitest run src/services/__tests__/doi-chieu-that.test.ts
+npx vitest run src/services/__tests__/contract-parity.test.ts
 ```
 
 Bộ giả chỉ chứng minh mini app **gửi** đúng thứ nó định gửi; bộ này chứng minh
