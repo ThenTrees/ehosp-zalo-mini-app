@@ -13,7 +13,7 @@ import {
   EmptyState,
   SectionHeader,
   StatusChip,
-  trangThaiLuotKham,
+  visitTone,
 } from "@/components/ui";
 import {
   activePatientIdState,
@@ -39,33 +39,33 @@ export default function RecordDetailPage() {
   const patientId = useAtomValue(activePatientIdState);
 
   if (patientId === null) {
-    return <LinkRequired loiNhan="Liên kết hồ sơ để xem lại lần khám này." />;
+    return <LinkRequired message="Liên kết hồ sơ để xem lại lần khám này." />;
   }
 
-  return <NoiDung visitId={Number(visitId)} patientId={patientId} />;
+  return <Body visitId={Number(visitId)} patientId={patientId} />;
 }
 
-function NoiDung({
+function Body({
   visitId,
   patientId,
 }: {
   visitId: number;
   patientId: number;
 }) {
-  const luotKham = useAtomValue(visitsState(patientId));
-  const donThuoc = useAtomValue(prescriptionsState(patientId));
-  const tenKhoa = useAtomValue(departmentNameState);
+  const visits = useAtomValue(visitsState(patientId));
+  const prescriptions = useAtomValue(prescriptionsState(patientId));
+  const departmentName = useAtomValue(departmentNameState);
   const setTitle = useSetAtom(customTitleState);
 
-  const luot = luotKham.find((lk) => lk.id === visitId);
-  const tieuDe = luot ? tenKhoa(luot.departmentId) : "Lần khám";
+  const visit = visits.find((visit) => visit.id === visitId);
+  const title = visit ? departmentName(visit.departmentId) : "Lần khám";
 
   useEffect(() => {
-    setTitle(tieuDe);
+    setTitle(title);
     return () => setTitle("");
-  }, [tieuDe, setTitle]);
+  }, [title, setTitle]);
 
-  if (!luot) {
+  if (!visit) {
     return (
       <EmptyState
         icon={ClipboardIcon}
@@ -77,22 +77,22 @@ function NoiDung({
     );
   }
 
-  const cuaLuotNay = donThuoc.filter((don) => don.visitId === luot.id);
+  const ofThisVisit = prescriptions.filter((prescription) => prescription.visitId === visit.id);
 
   return (
     <div className="space-y-6 p-4">
-      <TheLuotKham luot={luot} tenKhoa={tenKhoa(luot.departmentId)} />
+      <VisitCard visit={visit} departmentName={departmentName(visit.departmentId)} />
 
       <div className="space-y-3">
         <SectionHeader title="Đơn thuốc của lần khám này" />
-        {cuaLuotNay.length === 0 ? (
+        {ofThisVisit.length === 0 ? (
           <Card>
             <p className="text-sm text-ink-muted">
               Lần khám này không có đơn thuốc nào.
             </p>
           </Card>
         ) : (
-          cuaLuotNay.map((don) => <PrescriptionCard key={don.id} don={don} />)
+          ofThisVisit.map((prescription) => <PrescriptionCard key={prescription.id} prescription={prescription} />)
         )}
       </div>
 
@@ -112,14 +112,14 @@ function NoiDung({
   );
 }
 
-function TheLuotKham({
-  luot,
-  tenKhoa,
+function VisitCard({
+  visit,
+  departmentName,
 }: {
-  luot: VisitSummary;
-  tenKhoa: string;
+  visit: VisitSummary;
+  departmentName: string;
 }) {
-  const { nhan, tone } = trangThaiLuotKham(luot);
+  const { label, tone } = visitTone(visit);
 
   return (
     <Card>
@@ -127,17 +127,17 @@ function TheLuotKham({
         <div className="min-w-0 flex-1">
           <div className="text-2xs text-ink-muted">Chuyên khoa</div>
           <div className="mt-0.5 truncate text-xl font-bold text-ink">
-            {tenKhoa}
+            {departmentName}
           </div>
         </div>
-        <StatusChip tone={tone}>{nhan}</StatusChip>
+        <StatusChip tone={tone}>{label}</StatusChip>
       </div>
 
       <div className="mt-4 space-y-3 border-t border-line pt-4">
         <div className="flex items-center gap-3">
           <CalendarIcon width={20} height={20} className="text-primary-ink" />
           <span className="text-base text-ink">
-            {formatIsoDateLong(luot.visitDate)}
+            {formatIsoDateLong(visit.visitDate)}
           </span>
         </div>
         <div className="flex items-center gap-3">
@@ -147,7 +147,7 @@ function TheLuotKham({
             className="shrink-0 text-primary-ink"
           />
           <span className="font-mono text-base tracking-wide text-ink">
-            {luot.visitCode}
+            {visit.visitCode}
           </span>
         </div>
       </div>

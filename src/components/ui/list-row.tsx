@@ -28,10 +28,10 @@ export default function ListRow({
   danger,
   disabled,
 }: ListRowProps) {
-  const chamDuoc = Boolean(onClick) && !disabled;
-  const hienChevron = chevron ?? chamDuoc;
+  const isTappable = Boolean(onClick) && !disabled;
+  const showChevron = chevron ?? isTappable;
 
-  const noiDung = (
+  const content = (
     <>
       {Icon && (
         <span
@@ -61,7 +61,7 @@ export default function ListRow({
       {value !== undefined && valueOnRight && (
         <span className="shrink-0 text-sm font-medium text-ink">{value}</span>
       )}
-      {hienChevron && (
+      {showChevron && (
         <ChevronRightIcon
           width={20}
           height={20}
@@ -71,17 +71,17 @@ export default function ListRow({
     </>
   );
 
-  const lop = `flex w-full min-h-14 items-center gap-3 px-4 py-3 ${
-    chamDuoc ? "active:bg-surface-sunken" : ""
+  const className2 = `flex w-full min-h-14 items-center gap-3 px-4 py-3 ${
+    isTappable ? "active:bg-surface-sunken" : ""
   } ${disabled ? "opacity-50" : ""}`;
 
-  if (chamDuoc) {
+  if (isTappable) {
     return (
-      <button type="button" className={lop} onClick={onClick}>
-        {noiDung}
+      <button type="button" className={className2} onClick={onClick}>
+        {content}
       </button>
     );
   }
 
-  return <div className={lop}>{noiDung}</div>;
+  return <div className={className2}>{content}</div>;
 }

@@ -14,7 +14,7 @@ import {
   bookingFormState,
   departmentsState,
 } from "@/state";
-import { formatIsoDateLong, tenBuoi } from "@/utils/format";
+import { formatIsoDateLong, sessionName } from "@/utils/format";
 
 export default function Step3({ onBack }: { onBack: () => void }) {
   const navigate = useNavigate();
@@ -24,20 +24,20 @@ export default function Step3({ onBack }: { onBack: () => void }) {
   const profile = useAtomValue(activeProfileState);
   const patientId = useAtomValue(activePatientIdState);
   const refreshAppointments = useSetAtom(appointmentsState(patientId));
-  const [dangGui, setDangGui] = useState(false);
-  const [loi, setLoi] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   const department = departments.find((d) => d.id === form.departmentId);
 
-  async function xacNhan() {
+  async function confirm() {
     if (!patientId || !form.departmentId || !form.date || !form.session) {
-      setLoi("Thiếu thông tin đặt lịch. Vui lòng chọn lại từ đầu.");
+      setError("Thiếu thông tin đặt lịch. Vui lòng chọn lại từ đầu.");
       return;
     }
-    setDangGui(true);
-    setLoi("");
+    setSubmitting(true);
+    setError("");
     try {
-      const hen = await api.createAppointment({
+      const appointment = await api.createAppointment({
         patientId,
         departmentId: form.departmentId,
         date: form.date,
@@ -46,17 +46,17 @@ export default function Step3({ onBack }: { onBack: () => void }) {
       refreshAppointments();
       resetForm();
       toast.success("Đặt lịch thành công.");
-      navigate(`/appointments/${hen.id}`, { viewTransition: true });
+      navigate(`/appointments/${appointment.id}`, { viewTransition: true });
     } catch (error) {
       // Lỗi hết quota hoặc quá hai lịch hẹn đang mở là chuyện thường gặp và
       // cần đọc kỹ, nên nó ở lại trên màn hình chứ không trôi đi như toast.
-      setLoi(
+      setError(
         error instanceof Error
           ? error.message
           : "Không đặt được lịch. Vui lòng thử lại.",
       );
     } finally {
-      setDangGui(false);
+      setSubmitting(false);
     }
   }
 
@@ -70,27 +70,27 @@ export default function Step3({ onBack }: { onBack: () => void }) {
       </div>
 
       <Card bare>
-        <Dong nhan="Người khám" giaTri={profile?.fullName ?? "—"} />
-        <Dong nhan="Chuyên khoa" giaTri={department?.name ?? "—"} />
-        <Dong
-          nhan="Ngày khám"
-          giaTri={form.date ? formatIsoDateLong(form.date) : "—"}
+        <Row label="Người khám" value={profile?.fullName ?? "—"} />
+        <Row label="Chuyên khoa" value={department?.name ?? "—"} />
+        <Row
+          label="Ngày khám"
+          value={form.date ? formatIsoDateLong(form.date) : "—"}
         />
-        <Dong
-          nhan="Buổi"
-          giaTri={form.session ? tenBuoi(form.session) : "—"}
-          cuoi
+        <Row
+          label="Buổi"
+          value={form.session ? sessionName(form.session) : "—"}
+          isLast
         />
       </Card>
 
-      {loi && (
+      {error && (
         <div className="flex gap-3 rounded-md bg-error-soft p-4">
           <AlertCircleIcon
             width={20}
             height={20}
             className="mt-0.5 shrink-0 text-error"
           />
-          <p className="text-sm text-error">{loi}</p>
+          <p className="text-sm text-error">{error}</p>
         </div>
       )}
 
@@ -106,7 +106,7 @@ export default function Step3({ onBack }: { onBack: () => void }) {
         </p>
       </div>
 
-      <Button loading={dangGui} onClick={xacNhan}>
+      <Button loading={submitting} onClick={confirm}>
         Xác nhận đặt lịch
       </Button>
       <Button variant="ghost" onClick={onBack}>
@@ -116,24 +116,24 @@ export default function Step3({ onBack }: { onBack: () => void }) {
   );
 }
 
-function Dong({
-  nhan,
-  giaTri,
-  cuoi,
+function Row({
+  label,
+  value,
+  isLast,
 }: {
-  nhan: string;
-  giaTri: string;
-  cuoi?: boolean;
+  label: string;
+  value: string;
+  isLast?: boolean;
 }) {
   return (
     <div
       className={`flex items-baseline justify-between gap-4 px-4 py-3 ${
-        cuoi ? "" : "border-b border-line"
+        isLast ? "" : "border-b border-line"
       }`}
     >
-      <span className="shrink-0 text-sm text-ink-muted">{nhan}</span>
+      <span className="shrink-0 text-sm text-ink-muted">{label}</span>
       <span className="text-right text-base font-medium text-ink">
-        {giaTri}
+        {value}
       </span>
     </div>
   );

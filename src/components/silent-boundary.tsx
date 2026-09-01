@@ -10,12 +10,12 @@ import { Component, ReactNode } from "react";
  */
 export default class SilentBoundary extends Component<
   { children: ReactNode; fallback?: ReactNode },
-  { loi: boolean }
+  { error: boolean }
 > {
-  state = { loi: false };
+  state = { error: false };
 
   static getDerivedStateFromError() {
-    return { loi: true };
+    return { error: true };
   }
 
   componentDidCatch(error: unknown) {
@@ -23,6 +23,6 @@ export default class SilentBoundary extends Component<
   }
 
   render() {
-    return this.state.loi ? (this.props.fallback ?? null) : this.props.children;
+    return this.state.error ? (this.props.fallback ?? null) : this.props.children;
   }
 }

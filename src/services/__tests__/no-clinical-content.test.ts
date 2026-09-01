@@ -15,7 +15,7 @@ import typesSource from "../../types.d.ts?raw";
  * thứ hai bên dưới liệt kê trắng đúng các trường được phép, chặt hơn hẳn một
  * danh sách từ cấm.
  */
-const TU_CAM = [
+const FORBIDDEN_WORDS = [
   "diagnosis",
   "chandoan",
   "icd",
@@ -29,26 +29,26 @@ const TU_CAM = [
 ];
 
 /** Trường được phép, theo đúng câu SELECT trong `patient-app/service.ts`. */
-const TRUONG_CHO_PHEP: Record<string, string[]> = {
+const ALLOWED_FIELDS: Record<string, string[]> = {
   VisitSummary: ["id", "visitCode", "visitDate", "status", "departmentId"],
   PrescriptionSummary: ["id", "code", "status", "issuedDate", "visitId"],
 };
 
 /** Lấy các tên trường khai trong một `interface` của tệp types. */
-function truongCua(nguon: string, ten: string): string[] {
-  const than = new RegExp(`export interface ${ten} \\{([\\s\\S]*?)\\n\\}`).exec(
-    nguon,
+function fieldsOf(source: string, name: string): string[] {
+  const body = new RegExp(`export interface ${name} \\{([\\s\\S]*?)\\n\\}`).exec(
+    source,
   )?.[1];
-  if (than === undefined) {
-    throw new Error(`Không tìm thấy interface ${ten} trong types.d.ts`);
+  if (body === undefined) {
+    throw new Error(`Không tìm thấy interface ${name} trong types.d.ts`);
   }
-  const bat = /^\s{2}(\w+)\??:/gm;
-  const ten2: string[] = [];
-  let khop: RegExpExecArray | null;
-  while ((khop = bat.exec(than)) !== null) {
-    ten2.push(khop[1]);
+  const re = /^\s{2}(\w+)\??:/gm;
+  const names: string[] = [];
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(body)) !== null) {
+    names.push(match[1]);
   }
-  return ten2;
+  return names;
 }
 
 describe("hợp đồng dữ liệu không chứa nội dung lâm sàng", () => {
@@ -60,16 +60,16 @@ describe("hợp đồng dữ liệu không chứa nội dung lâm sàng", () => 
   });
 
   it("types.d.ts không khai báo trường lâm sàng nào", () => {
-    const noiDung = typesSource.toLowerCase().replace(/[^a-z]/g, "");
+    const content = typesSource.toLowerCase().replace(/[^a-z]/g, "");
 
-    for (const tu of TU_CAM) {
-      expect(noiDung).not.toContain(tu);
+    for (const word of FORBIDDEN_WORDS) {
+      expect(content).not.toContain(word);
     }
   });
 
   it("lượt khám và đơn thuốc chỉ có đúng các trường đã liệt kê trắng", () => {
-    for (const [ten, choPhep] of Object.entries(TRUONG_CHO_PHEP)) {
-      expect(truongCua(typesSource, ten).sort()).toEqual([...choPhep].sort());
+    for (const [name, allowed] of Object.entries(ALLOWED_FIELDS)) {
+      expect(fieldsOf(typesSource, name).sort()).toEqual([...allowed].sort());
     }
   });
 
@@ -80,10 +80,10 @@ describe("hợp đồng dữ liệu không chứa nội dung lâm sàng", () => 
    * trạng thái không bao giờ tới.
    */
   it("trạng thái đơn thuốc không có DRAFT", () => {
-    const than = /export type PrescriptionStatus =([\s\S]*?);/.exec(
+    const body = /export type PrescriptionStatus =([\s\S]*?);/.exec(
       typesSource,
     )?.[1];
-    expect(than).toBeTruthy();
-    expect(than).not.toContain("DRAFT");
+    expect(body).toBeTruthy();
+    expect(body).not.toContain("DRAFT");
   });
 });

@@ -16,7 +16,7 @@
   ],
   "scripts": {
     "login": "zmp login",
-    "start": "zmp start",
+    "start": "zmp start -P 3002",
     "deploy": "zmp deploy",
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.json",

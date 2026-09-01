@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { CalendarIcon, ChevronRightIcon, ClockIcon } from "@/components/icons";
-import { StatusChip, trangThaiLichHen } from "@/components/ui";
-import { formatIsoDate, tenBuoi } from "@/utils/format";
+import { StatusChip, appointmentTone } from "@/components/ui";
+import { formatIsoDate, sessionName } from "@/utils/format";
 import type { Appointment } from "@/types";
 
 /**
@@ -11,15 +11,15 @@ import type { Appointment } from "@/types";
  * Cố ý không in mã hẹn ở đây: mã hẹn là thứ dùng để nhận diện tại quầy, chỉ
  * hiện ở màn chi tiết khi người bệnh chủ động mở ra.
  */
-export default function AppointmentCard({ hen }: { hen: Appointment }) {
+export default function AppointmentCard({ appointment }: { appointment: Appointment }) {
   const navigate = useNavigate();
-  const { nhan, tone } = trangThaiLichHen(hen);
+  const { label, tone } = appointmentTone(appointment);
 
   return (
     <button
       type="button"
       onClick={() =>
-        navigate(`/appointments/${hen.id}`, { viewTransition: true })
+        navigate(`/appointments/${appointment.id}`, { viewTransition: true })
       }
       className="relative w-full overflow-hidden rounded-md border border-line bg-surface p-4 pl-5 text-left shadow-card active:scale-[0.99]"
     >
@@ -37,19 +37,19 @@ export default function AppointmentCard({ hen }: { hen: Appointment }) {
 
       <div className="flex items-start gap-3">
         <span className="min-w-0 flex-1 text-lg font-semibold text-ink">
-          {hen.department.name}
+          {appointment.department.name}
         </span>
-        <StatusChip tone={tone}>{nhan}</StatusChip>
+        <StatusChip tone={tone}>{label}</StatusChip>
       </div>
 
       <div className="mt-3 flex items-center gap-4 border-t border-line pt-3 text-sm text-ink-muted">
         <span className="flex items-center gap-1.5">
           <CalendarIcon width={16} height={16} />
-          {formatIsoDate(hen.apptDate)}
+          {formatIsoDate(appointment.apptDate)}
         </span>
         <span className="flex items-center gap-1.5">
           <ClockIcon width={16} height={16} />
-          {tenBuoi(hen.session)}
+          {sessionName(appointment.session)}
         </span>
         <ChevronRightIcon
           width={18}

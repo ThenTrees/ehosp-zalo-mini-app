@@ -8,7 +8,7 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
   accent?: "primary" | "success" | "warning" | "error";
 }
 
-const VACH: Record<NonNullable<CardProps["accent"]>, string> = {
+const ACCENT_CLASSES: Record<NonNullable<CardProps["accent"]>, string> = {
   primary: "before:bg-primary",
   success: "before:bg-success",
   warning: "before:bg-warning",
@@ -32,7 +32,7 @@ export default function Card({
         bare ? "" : "p-4"
       } ${
         accent
-          ? `before:absolute before:left-0 before:inset-y-0 before:w-1 ${VACH[accent]}`
+          ? `before:absolute before:left-0 before:inset-y-0 before:w-1 ${ACCENT_CLASSES[accent]}`
           : ""
       } ${className}`}
       {...props}

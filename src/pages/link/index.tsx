@@ -3,65 +3,79 @@ import { useNavigate } from "react-router-dom";
 import { useSetAtom } from "jotai";
 import toast from "react-hot-toast";
 import { api } from "@/services";
-import { layTokenSoDienThoai } from "@/services/phone";
+import { getUserAccessToken, getPhoneToken } from "@/services/phone";
 import { applyLinkState } from "@/state";
 import { Button } from "@/components/button";
 import { AlertCircleIcon, ShieldIcon } from "@/components/icons";
 
-type Buoc = "BAT_DAU" | "BIRTHDATE" | "INSURANCE_LAST4";
+type Step = "BAT_DAU" | "BIRTHDATE" | "INSURANCE_LAST4";
 
 export default function LinkPage() {
   const navigate = useNavigate();
   const applyLink = useSetAtom(applyLinkState);
-  const [buoc, setBuoc] = useState<Buoc>("BAT_DAU");
-  const [phoneToken, setPhoneToken] = useState("");
+  const [step, setStep] = useState<Step>("BAT_DAU");
   const [birthdate, setBirthdate] = useState("");
   const [last4, setLast4] = useState("");
-  const [dangGui, setDangGui] = useState(false);
-  const [loi, setLoi] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
-  async function gui(token: string) {
-    setDangGui(true);
-    setLoi("");
+  /**
+   * Gửi một lần liên kết.
+   *
+   * Mỗi lần gửi lấy MÃ MỚI, không dùng lại mã của bước trước: mã của
+   * `getPhoneNumber()` dùng được đúng một lần, và Zalo trả lỗi 119 "code has
+   * already been used" khi bước nhập ngày sinh gửi lại mã cũ — đo trên máy
+   * thật ngày 2026-09-01. Giữ mã trong state là cái bẫy tự nhiên ở đây, vì
+   * luồng có nhiều bước mà mã thì không sống qua được bước nào.
+   */
+  async function submit() {
+    setSubmitting(true);
+    setError("");
     try {
-      const ketQua = await api.link({
+      let token: string;
+      let access: string;
+      try {
+        [token, access] = await Promise.all([
+          getPhoneToken(),
+          getUserAccessToken(),
+        ]);
+      } catch {
+        // Tách riêng khỏi lỗi của máy chủ: người bệnh từ chối quyền là một
+        // tình huống khác hẳn "thông tin không khớp", và cần một câu chỉ đúng
+        // việc phải làm.
+        setError("Cần cho phép truy cập số điện thoại để liên kết hồ sơ.");
+        return;
+      }
+      const result = await api.link({
         zaloPhoneToken: token,
+        zaloAccessToken: access,
         birthdate: birthdate || undefined,
         insuranceLast4: last4 || undefined,
       });
 
-      if (ketQua.outcome === "CHALLENGE") {
-        setBuoc(ketQua.need);
+      if (result.outcome === "CHALLENGE") {
+        setStep(result.need);
         return;
       }
 
       await applyLink({
-        token: ketQua.token,
-        patientId: ketQua.profiles[0].patientId,
+        token: result.token,
+        patientId: result.profiles[0].patientId,
       });
       toast.success("Liên kết tài khoản thành công.");
       navigate("/", { viewTransition: true });
     } catch (error) {
-      setLoi(
+      setError(
         error instanceof Error
           ? error.message
           : "Thông tin không khớp. Vui lòng kiểm tra lại.",
       );
     } finally {
-      setDangGui(false);
+      setSubmitting(false);
     }
   }
 
-  async function batDau() {
-    setLoi("");
-    try {
-      const token = await layTokenSoDienThoai();
-      setPhoneToken(token);
-      await gui(token);
-    } catch {
-      setLoi("Cần cho phép truy cập số điện thoại để liên kết hồ sơ.");
-    }
-  }
+
 
   return (
     <div className="space-y-6 p-4">
@@ -79,20 +93,20 @@ export default function LinkPage() {
         </p>
       </div>
 
-      {loi && (
+      {error && (
         <div className="flex gap-3 rounded-md bg-error-soft p-4">
           <AlertCircleIcon
             width={20}
             height={20}
             className="mt-0.5 shrink-0 text-error"
           />
-          <p className="text-sm text-error">{loi}</p>
+          <p className="text-sm text-error">{error}</p>
         </div>
       )}
 
-      {buoc === "BAT_DAU" && (
+      {step === "BAT_DAU" && (
         <>
-          <Button onClick={batDau} loading={dangGui}>
+          <Button onClick={() => submit()} loading={submitting}>
             Liên kết bằng số điện thoại Zalo
           </Button>
           <p className="text-center text-sm text-ink-muted">
@@ -102,7 +116,7 @@ export default function LinkPage() {
         </>
       )}
 
-      {buoc === "BIRTHDATE" && (
+      {step === "BIRTHDATE" && (
         <>
           <p className="text-base text-ink">
             Nhập ngày sinh của người bệnh để phòng khám xác minh đúng hồ sơ.
@@ -117,8 +131,8 @@ export default function LinkPage() {
             />
           </Field>
           <Button
-            onClick={() => gui(phoneToken)}
-            loading={dangGui}
+            onClick={() => submit()}
+            loading={submitting}
             disabled={!birthdate}
           >
             Xác nhận
@@ -126,7 +140,7 @@ export default function LinkPage() {
         </>
       )}
 
-      {buoc === "INSURANCE_LAST4" && (
+      {step === "INSURANCE_LAST4" && (
         <>
           <p className="text-base text-ink">
             Có nhiều hồ sơ trùng thông tin. Nhập 4 số cuối thẻ BHYT của đúng hồ
@@ -144,8 +158,8 @@ export default function LinkPage() {
             />
           </Field>
           <Button
-            onClick={() => gui(phoneToken)}
-            loading={dangGui}
+            onClick={() => submit()}
+            loading={submitting}
             disabled={last4.length !== 4}
           >
             Xác nhận

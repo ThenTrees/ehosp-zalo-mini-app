@@ -12,24 +12,24 @@ import { toLowerCaseNonAccentVietnamese } from "@/utils/miscellaneous";
 export default function Step1({ onNext }: { onNext: () => void }) {
   const departments = useAtomValue(departmentsState);
   const setForm = useSetAtom(bookingFormState);
-  const [tuKhoa, setTuKhoa] = useState("");
+  const [keyword, setKeyword] = useState("");
 
   // Người bệnh gõ "khoa noi" phải ra "Khoa Nội" — so sánh chuỗi có dấu thì
   // không bao giờ khớp.
-  const ketQua = useMemo(() => {
-    const khoa = toLowerCaseNonAccentVietnamese(tuKhoa.trim());
-    if (!khoa) return departments;
+  const results = useMemo(() => {
+    const department = toLowerCaseNonAccentVietnamese(keyword.trim());
+    if (!department) return departments;
     return departments.filter((d) =>
       toLowerCaseNonAccentVietnamese(
         `${d.name} ${d.description ?? ""}`,
-      ).includes(khoa),
+      ).includes(department),
     );
-  }, [departments, tuKhoa]);
+  }, [departments, keyword]);
 
   return (
     <div className="space-y-4 p-4">
       <div>
-        <h2 className="text-xl font-bold text-ink">Bạn muốn khám khoa nào?</h2>
+        <h2 className="text-xl font-bold text-ink">Bạn muốn khám department nào?</h2>
         <p className="mt-1 text-sm text-ink-muted">
           Phòng khám sẽ phân công bác sĩ trực của buổi bạn chọn.
         </p>
@@ -42,24 +42,24 @@ export default function Step1({ onNext }: { onNext: () => void }) {
           className="shrink-0 text-ink-muted"
         />
         <input
-          value={tuKhoa}
-          onChange={(e) => setTuKhoa(e.target.value)}
+          value={keyword}
+          onChange={(e) => setKeyword(e.target.value)}
           placeholder="Tìm chuyên khoa…"
           className="min-w-0 flex-1 bg-transparent text-base text-ink outline-none placeholder:text-ink-muted"
         />
       </div>
 
-      {ketQua.length === 0 ? (
+      {results.length === 0 ? (
         <EmptyState
           icon={SearchIcon}
           title="Không tìm thấy chuyên khoa"
           hint="Thử bỏ bớt từ khoá, hoặc xem toàn bộ danh sách."
           actionLabel="Xoá tìm kiếm"
-          onAction={() => setTuKhoa("")}
+          onAction={() => setKeyword("")}
         />
       ) : (
         <div className="grid grid-cols-2 gap-3">
-          {ketQua.map((department) => (
+          {results.map((department) => (
             <button
               key={department.id}
               type="button"

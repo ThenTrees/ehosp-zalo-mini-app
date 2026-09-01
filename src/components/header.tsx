@@ -53,7 +53,7 @@ function Greeting() {
  * route. Không bọc thì một lỗi mạng ở phần trang trí sẽ đá người dùng ra khỏi
  * trang họ đang xem.
  */
-function PhanDong({
+function GreetingBlock({
   children,
   fallback,
 }: {
@@ -67,11 +67,11 @@ function PhanDong({
   );
 }
 
-function TenPhongKham({ className }: { className?: string }) {
+function ClinicName({ className }: { className?: string }) {
   return <span className={className}>{getConfig((c) => c.app.title)}</span>;
 }
 
-function NutQuayLai() {
+function BackButton() {
   const navigate = useNavigate();
 
   return (
@@ -98,15 +98,15 @@ export default function Header() {
     // Mũi tên quay lại ăn mất 40px, mà `pr-[90px]` đã giữ chỗ cho cụm nút gốc
     // của Zalo — còn lại không đủ cho "Phòng khám phường Sài Gòn". Bỏ tên đi
     // thay vì cắt cụt: tên trang đã nằm ngay dưới, cỡ 24px, do `PageHeading` vẽ.
-    const hienNutQuayLai = Boolean(handle.back) && showBack;
+    const showBackButton = Boolean(handle.back) && showBack;
 
     return (
       <header className="flex-none w-full bg-background px-4 pt-st pb-2 pr-[90px]">
         <div className="flex min-h-12 items-center gap-2">
-          {hienNutQuayLai ? (
-            <NutQuayLai />
+          {showBackButton ? (
+            <BackButton />
           ) : (
-            <TenPhongKham className="min-w-0 flex-1 truncate text-lg font-bold text-primary-ink" />
+            <ClinicName className="min-w-0 flex-1 truncate text-lg font-bold text-primary-ink" />
           )}
         </div>
       </header>
@@ -117,16 +117,16 @@ export default function Header() {
     return (
       <header className="flex-none w-full bg-gradient-to-b from-primary-soft to-background px-4 pt-st pb-3 pr-[90px]">
         <div className="flex min-h-12 items-center gap-2">
-          <PhanDong
+          <GreetingBlock
             fallback={
               <div className="min-w-0 flex-1">
                 <div className="text-2xs text-ink-muted">Chào bạn</div>
-                <TenPhongKham className="block truncate text-xl font-bold text-ink" />
+                <ClinicName className="block truncate text-xl font-bold text-ink" />
               </div>
             }
           >
             <Greeting />
-          </PhanDong>
+          </GreetingBlock>
         </div>
       </header>
     );
@@ -135,7 +135,7 @@ export default function Header() {
   return (
     <header className="flex-none w-full border-b border-line bg-surface px-4 pt-st pb-2 pr-[90px]">
       <div className="flex min-h-12 items-center gap-1">
-        {showBack && <NutQuayLai />}
+        {showBack && <BackButton />}
         <div className="truncate text-lg font-semibold text-ink">
           {handle.title === "custom" ? (
             <Suspense fallback={null}>

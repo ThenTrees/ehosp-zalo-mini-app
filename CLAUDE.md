@@ -12,7 +12,7 @@ React 18 + TypeScript + Vite 5, UI từ `zmp-ui`, state bằng Jotai, styling b�
 
 **Cố ý KHÔNG làm — đây là ràng buộc quan trọng nhất của dự án:** mini app không hiển thị **nội dung** lâm sàng. Không chẩn đoán, không kết quả xét nghiệm, không tên thuốc, không liều dùng. Sổ sức khoẻ điện tử trên VNeID đã làm việc đó và có giá trị pháp lý tương đương bản giấy (QĐ 31/QĐ-BYT, 06/01/2026); phòng khám bắt buộc phải đồng bộ dữ liệu vào đó. Tự xây màn hình xem bệnh án là làm bản kém hơn thứ người bệnh đã có trong túi, kèm toàn bộ rủi ro riêng tư.
 
-Ranh giới chính xác, chốt ngày 2026-08-30: màn **Lịch sử khám** (`/records`) hiện *ngày, khoa, mã lượt khám, trạng thái* của từng lần khám và *mã đơn, ngày kê, trạng thái phát thuốc* của từng đơn thuốc — không hơn. Trang cố ý **không tên là "Bệnh án"**: gọi vậy là hứa một thứ nó không có. `src/services/__tests__/khong-lam-sang.test.ts` canh chừng bằng một danh sách trắng các trường được phép, chặt hơn danh sách từ cấm trước đây.
+Ranh giới chính xác, chốt ngày 2026-08-30: màn **Lịch sử khám** (`/records`) hiện *ngày, khoa, mã lượt khám, trạng thái* của từng lần khám và *mã đơn, ngày kê, trạng thái phát thuốc* của từng đơn thuốc — không hơn. Trang cố ý **không tên là "Bệnh án"**: gọi vậy là hứa một thứ nó không có. `src/services/__tests__/no-clinical-content.test.ts` canh chừng bằng một danh sách trắng các trường được phép, chặt hơn danh sách từ cấm trước đây.
 
 Tài liệu: spec ở `docs/superpowers/specs/2026-08-22-zalo-mini-app-gd1-design.md`, kế hoạch ở `docs/superpowers/plans/`, thiết kế mô-đun gốc ở `eHosp/docs/09-THIET-KE-DICH-VU/12-MOBILE-APP.md`.
 
@@ -20,7 +20,7 @@ Tài liệu: spec ở `docs/superpowers/specs/2026-08-22-zalo-mini-app-gd1-desig
 
 ```bash
 npm install
-npm start            # zmp start -> dev server on localhost:3000
+npm start            # zmp start -P 3002 -> khung Zalo :3002, app thật :3001
 npm test             # vitest run -> unit tests cho src/services
 npm run typecheck    # tsc --noEmit -p tsconfig.json
 npm run format       # prettier --write src/**/*.{js,jsx,ts,tsx}
@@ -39,14 +39,14 @@ npm run deploy       # zmp deploy -> publish lên Zalo, output vào www/
 
 `npm test` chạy trên tầng dữ liệu giả và **không** cần máy chủ. Bên cạnh đó có
 một bộ đối chiếu chỉ chạy khi được cấp máy chủ + phiên thật —
-`src/services/__tests__/doi-chieu-that.test.ts`, tự bỏ qua khi thiếu biến môi
+`src/services/__tests__/contract-parity.test.ts`, tự bỏ qua khi thiếu biến môi
 trường, nên nó không làm hỏng CI.
 
 ```bash
-EMR_API_URL=http://127.0.0.1:3010/api/patient-app \
+EMR_API_URL=http://127.0.0.1:3000/api/patient-app \
 EMR_PATIENT_SESSION=<mã phiên> \
 EMR_PATIENT_ID=<mã hồ sơ> \
-npx vitest run src/services/__tests__/doi-chieu-that.test.ts
+npx vitest run src/services/__tests__/contract-parity.test.ts
 ```
 
 Bộ giả chỉ chứng minh mini app **gửi** đúng thứ nó định gửi; bộ này chứng minh
@@ -88,7 +88,7 @@ thật): chèn một dòng `emr_patient_app_link` và một dòng
 
 Đổi sang back-end thật = đặt `VITE_USE_FAKE=false` và `VITE_API_BASE_URL` trong `.env`. Không sửa dòng mã nào. Chỉ có **hai** chế độ; chế độ `hybrid` (trộn tuyến thật với tuyến giả) đã bị bỏ ngày 2026-08-30 khi mọi tuyến mini app cần đều đã có thật.
 
-Ba ràng buộc đã được biến thành test chạy được: **không bí mật nào trong URL** (`http.test.ts`), **không trường lâm sàng nào trong hợp đồng dữ liệu** (`khong-lam-sang.test.ts`), và **client khớp từng tham số với `router.ts` của eHosp** (`patient-app-api.test.ts`).
+Ba ràng buộc đã được biến thành test chạy được: **không bí mật nào trong URL** (`http.test.ts`), **không trường lâm sàng nào trong hợp đồng dữ liệu** (`no-clinical-content.test.ts`), và **client khớp từng tham số với `router.ts` của eHosp** (`patient-app-api.test.ts`).
 
 ### State (`src/state.ts`)
 
@@ -132,7 +132,7 @@ Thêm trang: tạo `src/pages/<name>/index.tsx` xuất component `*Page`, đăng
 
 `zmp-sdk` chỉ dùng ở hai mô-đun — giữ nguyên như vậy:
 
-- `getPhoneNumber` — `src/pages/link/index.tsx`. Nó chỉ trả về một **token**, không phải số điện thoại; máy chủ đổi token đó ra số thật bằng secret key của Zalo. Secret key không bao giờ nằm trong mini app.
+- `getPhoneNumber` + `getAccessToken` — `src/services/phone.ts`, gọi qua `getPhoneToken()` và `getUserAccessToken()`. Zalo đòi cả hai: mã dùng một lần, và token phiên chứng minh mã ấy thuộc về ai. Secret key không bao giờ nằm trong mini app — máy chủ giữ.
 - `getStorage`/`setStorage`/`removeStorage` — `src/services/session.ts`.
 
 ## Configuration and theming

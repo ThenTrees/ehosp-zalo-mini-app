@@ -8,7 +8,7 @@ import { activePatientIdState, prescriptionsState, visitsState } from "@/state";
 import VisitCard from "./visit-card";
 import PrescriptionCard from "./prescription-card";
 
-type Lat = "kham" | "thuoc";
+type Tab = "kham" | "thuoc";
 
 /**
  * Lịch sử khám — hai lát cắt của cùng một quá khứ: các lần đã khám và các đơn
@@ -21,56 +21,56 @@ type Lat = "kham" | "thuoc";
  */
 export default function RecordsPage() {
   const patientId = useAtomValue(activePatientIdState);
-  const [lat, setLat] = useState<Lat>("kham");
+  const [tab, setTab] = useState<Tab>("kham");
 
   if (patientId === null) {
     return (
-      <LinkRequired loiNhan="Liên kết hồ sơ để xem lại các lần khám và đơn thuốc của bạn." />
+      <LinkRequired message="Liên kết hồ sơ để xem lại các lần khám và đơn thuốc của bạn." />
     );
   }
 
   return (
     <div>
-      <ChonLat lat={lat} onChange={setLat} patientId={patientId} />
-      {lat === "kham" ? (
-        <DanhSachLuotKham patientId={patientId} />
+      <SliceChoice tab={tab} onChange={setTab} patientId={patientId} />
+      {tab === "kham" ? (
+        <VisitList patientId={patientId} />
       ) : (
-        <DanhSachDonThuoc patientId={patientId} />
+        <PrescriptionList patientId={patientId} />
       )}
-      <GhiChuLamSang />
+      <ClinicalNotice />
     </div>
   );
 }
 
-function ChonLat({
-  lat,
+function SliceChoice({
+  tab,
   onChange,
   patientId,
 }: {
-  lat: Lat;
-  onChange: (lat: Lat) => void;
+  tab: Tab;
+  onChange: (tab: Tab) => void;
   patientId: number;
 }) {
-  const luotKham = useAtomValue(visitsState(patientId));
-  const donThuoc = useAtomValue(prescriptionsState(patientId));
+  const visits = useAtomValue(visitsState(patientId));
+  const prescriptions = useAtomValue(prescriptionsState(patientId));
 
   return (
     <Segmented
-      value={lat}
+      value={tab}
       onChange={onChange}
       options={[
-        { value: "kham", label: "Lượt khám", count: luotKham.length },
-        { value: "thuoc", label: "Đơn thuốc", count: donThuoc.length },
+        { value: "kham", label: "Lượt khám", count: visits.length },
+        { value: "thuoc", label: "Đơn thuốc", count: prescriptions.length },
       ]}
     />
   );
 }
 
-function DanhSachLuotKham({ patientId }: { patientId: number }) {
+function VisitList({ patientId }: { patientId: number }) {
   const navigate = useNavigate();
-  const luotKham = useAtomValue(visitsState(patientId));
+  const visits = useAtomValue(visitsState(patientId));
 
-  if (luotKham.length === 0) {
+  if (visits.length === 0) {
     return (
       <EmptyState
         icon={ClipboardIcon}
@@ -84,12 +84,12 @@ function DanhSachLuotKham({ patientId }: { patientId: number }) {
 
   return (
     <div className="space-y-3 p-4">
-      {luotKham.map((luot) => (
+      {visits.map((visit) => (
         <VisitCard
-          key={luot.id}
-          luot={luot}
+          key={visit.id}
+          visit={visit}
           onClick={() =>
-            navigate(`/records/${luot.id}`, { viewTransition: true })
+            navigate(`/records/${visit.id}`, { viewTransition: true })
           }
         />
       ))}
@@ -97,12 +97,12 @@ function DanhSachLuotKham({ patientId }: { patientId: number }) {
   );
 }
 
-function DanhSachDonThuoc({ patientId }: { patientId: number }) {
+function PrescriptionList({ patientId }: { patientId: number }) {
   const navigate = useNavigate();
-  const donThuoc = useAtomValue(prescriptionsState(patientId));
-  const luotKham = useAtomValue(visitsState(patientId));
+  const prescriptions = useAtomValue(prescriptionsState(patientId));
+  const visits = useAtomValue(visitsState(patientId));
 
-  if (donThuoc.length === 0) {
+  if (prescriptions.length === 0) {
     return (
       <EmptyState
         icon={PillIcon}
@@ -114,17 +114,17 @@ function DanhSachDonThuoc({ patientId }: { patientId: number }) {
 
   return (
     <div className="space-y-3 p-4">
-      {donThuoc.map((don) => (
+      {prescriptions.map((prescription) => (
         <PrescriptionCard
-          key={don.id}
-          don={don}
+          key={prescription.id}
+          prescription={prescription}
           // Đơn thuốc luôn có `visitId`, nhưng lượt khám tương ứng có thể nằm
           // ngoài 100 dòng gần nhất mà máy chủ trả về. Không tìm thấy thì bỏ
           // hẳn lối đi, thay vì điều hướng tới một trang chắc chắn báo 404.
           onClick={
-            luotKham.some((lk) => lk.id === don.visitId)
+            visits.some((visit) => visit.id === prescription.visitId)
               ? () =>
-                  navigate(`/records/${don.visitId}`, { viewTransition: true })
+                  navigate(`/records/${prescription.visitId}`, { viewTransition: true })
               : undefined
           }
         />
@@ -140,7 +140,7 @@ function DanhSachDonThuoc({ patientId }: { patientId: number }) {
  * cuộn hết danh sách rồi tự kết luận "app này thiếu" là tệ hơn việc nói trước
  * chỗ nào có thứ họ cần.
  */
-function GhiChuLamSang() {
+function ClinicalNotice() {
   return (
     <div className="px-4 pb-6">
       <Card className="flex gap-3">

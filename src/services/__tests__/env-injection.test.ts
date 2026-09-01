@@ -31,7 +31,7 @@ describe("biến môi trường phải vào được bundle", () => {
   });
 
   it("services/index.ts KHÔNG truyền cả object import.meta.env", () => {
-    const goiHam = indexSource.replace(/\s+/g, " ");
-    expect(goiHam).not.toMatch(/readRuntimeConfig\(\s*import\.meta\.env/);
+    const callFn = indexSource.replace(/\s+/g, " ");
+    expect(callFn).not.toMatch(/readRuntimeConfig\(\s*import\.meta\.env/);
   });
 });

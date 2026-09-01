@@ -8,7 +8,7 @@ import type {
 
 export type Tone = "success" | "warning" | "error" | "neutral" | "info";
 
-const SAC_THAI: Record<Tone, string> = {
+const TONE_CLASSES: Record<Tone, string> = {
   success: "bg-success-soft text-success",
   warning: "bg-warning-soft text-warning",
   error: "bg-error-soft text-error",
@@ -30,7 +30,7 @@ export default function StatusChip({
 }) {
   return (
     <span
-      className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-3xs font-semibold ${SAC_THAI[tone]} ${className}`}
+      className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-3xs font-semibold ${TONE_CLASSES[tone]} ${className}`}
     >
       {children}
     </span>
@@ -41,23 +41,23 @@ export default function StatusChip({
  * Bảng dịch trạng thái lịch hẹn sang tiếng Việt. Đây là chỗ duy nhất giữ bảng
  * này — trước đây mỗi trang tự chép một bản và chúng đã bắt đầu lệch nhau.
  */
-export function trangThaiLichHen(hen: Appointment): {
-  nhan: string;
+export function appointmentTone(appointment: Appointment): {
+  label: string;
   tone: Tone;
 } {
-  switch (hen.status) {
+  switch (appointment.status) {
     case "Scheduled":
-      return hen.patientConfirmed
-        ? { nhan: "Đã xác nhận", tone: "success" }
-        : { nhan: "Chờ xác nhận", tone: "warning" };
+      return appointment.patientConfirmed
+        ? { label: "Đã xác nhận", tone: "success" }
+        : { label: "Chờ xác nhận", tone: "warning" };
     case "CheckedIn":
-      return { nhan: "Đã đến khám", tone: "info" };
+      return { label: "Đã đến khám", tone: "info" };
     case "Completed":
-      return { nhan: "Đã khám xong", tone: "neutral" };
+      return { label: "Đã khám xong", tone: "neutral" };
     case "Cancelled":
-      return { nhan: "Đã huỷ", tone: "error" };
+      return { label: "Đã huỷ", tone: "error" };
     case "Missed":
-      return { nhan: "Lỡ hẹn", tone: "error" };
+      return { label: "Lỡ hẹn", tone: "error" };
   }
 }
 
@@ -68,46 +68,46 @@ export function trangThaiLichHen(hen: Appointment): {
  * (cột nhãn tiếng Việt và cột tone), để hai bề mặt — màn nhân viên và mini app
  * — không gọi cùng một trạng thái bằng hai cái tên khác nhau.
  */
-export function trangThaiLuotKham(luot: VisitSummary): {
-  nhan: string;
+export function visitTone(visit: VisitSummary): {
+  label: string;
   tone: Tone;
 } {
-  switch (luot.status) {
+  switch (visit.status) {
     case "WAITING":
-      return { nhan: "Chờ khám", tone: "warning" };
+      return { label: "Chờ khám", tone: "warning" };
     case "IN_PROGRESS":
-      return { nhan: "Đang khám", tone: "info" };
+      return { label: "Đang khám", tone: "info" };
     case "DONE":
-      return { nhan: "Đã khám xong", tone: "success" };
+      return { label: "Đã khám xong", tone: "success" };
     case "CANCELLED":
-      return { nhan: "Đã huỷ", tone: "error" };
+      return { label: "Đã huỷ", tone: "error" };
   }
 }
 
 /** Nhãn trạng thái đơn thuốc — nhóm PRESCRIPTION_STATUS, trừ mã DRAFT. */
-export function trangThaiDonThuoc(don: PrescriptionSummary): {
-  nhan: string;
+export function prescriptionTone(prescription: PrescriptionSummary): {
+  label: string;
   tone: Tone;
 } {
-  switch (don.status) {
+  switch (prescription.status) {
     case "ISSUED":
-      return { nhan: "Đã kê, chờ lấy thuốc", tone: "warning" };
+      return { label: "Đã kê, chờ lấy thuốc", tone: "warning" };
     case "DISPENSED":
-      return { nhan: "Đã phát thuốc", tone: "success" };
+      return { label: "Đã phát thuốc", tone: "success" };
     case "CANCELLED":
-      return { nhan: "Đã huỷ", tone: "error" };
+      return { label: "Đã huỷ", tone: "error" };
   }
 }
 
-export function trangThaiHoaDon(hoaDon: InvoiceSummary): {
-  nhan: string;
+export function invoiceTone(invoice: InvoiceSummary): {
+  label: string;
   tone: Tone;
 } {
-  if (hoaDon.paid) {
-    return { nhan: "Đã thanh toán", tone: "success" };
+  if (invoice.paid) {
+    return { label: "Đã thanh toán", tone: "success" };
   }
-  if (hoaDon.amountDue === 0) {
-    return { nhan: "BHYT chi trả toàn bộ", tone: "info" };
+  if (invoice.amountDue === 0) {
+    return { label: "BHYT chi trả toàn bộ", tone: "info" };
   }
-  return { nhan: "Chưa thanh toán", tone: "error" };
+  return { label: "Chưa thanh toán", tone: "error" };
 }

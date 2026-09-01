@@ -50,11 +50,17 @@ describe("createHttpApi — phiên và bí mật", () => {
     const spy = spyFetch({ outcome: "CHALLENGE", need: "BIRTHDATE" });
     const api = createHttpApi(BASE, () => null, spy);
 
-    await api.link({ zaloPhoneToken: "zalo-token-bi-mat" });
+    await api.link({
+      zaloPhoneToken: "zalo-token-bi-mat",
+      zaloAccessToken: "access-token-cua-nguoi-dung",
+    });
 
     expect(urlOf(spy)).toBe(`${BASE}/link`);
     expect(urlOf(spy)).not.toContain("zalo-token-bi-mat");
-    expect(bodyOf(spy)).toEqual({ zaloPhoneToken: "zalo-token-bi-mat" });
+    expect(bodyOf(spy)).toEqual({
+      zaloPhoneToken: "zalo-token-bi-mat",
+      zaloAccessToken: "access-token-cua-nguoi-dung",
+    });
   });
 });
 
@@ -84,7 +90,7 @@ describe("createHttpApi — hợp đồng §6", () => {
   });
 
   it("thân trả về lạ thì ra mảng rỗng chứ không ném", async () => {
-    const spy = spyFetch({ khong: "phai danh sach" });
+    const spy = spyFetch({ notAList: "phai danh sach" });
     const api = createHttpApi(BASE, () => "abc", spy);
 
     await expect(api.visits({ patientId: 42 })).resolves.toEqual([]);

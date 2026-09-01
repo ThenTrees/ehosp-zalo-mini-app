@@ -1,5 +1,5 @@
 import { ChevronRightIcon, PillIcon } from "@/components/icons";
-import { Card, StatusChip, trangThaiDonThuoc } from "@/components/ui";
+import { Card, StatusChip, prescriptionTone } from "@/components/ui";
 import { formatIsoDate } from "@/utils/format";
 import type { PrescriptionSummary } from "@/types";
 
@@ -11,28 +11,28 @@ import type { PrescriptionSummary } from "@/types";
  * câu người bệnh hay hỏi nhất khi mở lại một đơn cũ.
  */
 export default function PrescriptionCard({
-  don,
+  prescription,
   onClick,
 }: {
-  don: PrescriptionSummary;
+  prescription: PrescriptionSummary;
   onClick?: () => void;
 }) {
-  const { nhan, tone } = trangThaiDonThuoc(don);
+  const { label, tone } = prescriptionTone(prescription);
 
-  const noiDung = (
+  const content = (
     <div className="flex items-start gap-3">
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-primary-soft text-primary-ink">
         <PillIcon width={20} height={20} />
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate font-mono text-base font-semibold text-ink">
-          {don.code}
+          {prescription.code}
         </span>
         <span className="mt-0.5 block text-sm text-ink-muted">
-          Kê ngày {formatIsoDate(don.issuedDate)}
+          Kê ngày {formatIsoDate(prescription.issuedDate)}
         </span>
         <span className="mt-2 block">
-          <StatusChip tone={tone}>{nhan}</StatusChip>
+          <StatusChip tone={tone}>{label}</StatusChip>
         </span>
       </span>
       {onClick && (
@@ -46,7 +46,7 @@ export default function PrescriptionCard({
   );
 
   if (!onClick) {
-    return <Card>{noiDung}</Card>;
+    return <Card>{content}</Card>;
   }
 
   return (
@@ -55,7 +55,7 @@ export default function PrescriptionCard({
       onClick={onClick}
       className="block w-full text-left active:scale-[0.99]"
     >
-      <Card>{noiDung}</Card>
+      <Card>{content}</Card>
     </button>
   );
 }

@@ -15,14 +15,14 @@ export default function Segmented<T extends string>({
   return (
     <div className="flex border-b border-line">
       {options.map((option) => {
-        const dangChon = option.value === value;
+        const selected = option.value === value;
         return (
           <button
             key={option.value}
             type="button"
             onClick={() => onChange(option.value)}
             className={`flex-1 border-b-2 pb-3 pt-1 text-base transition-colors ${
-              dangChon
+              selected
                 ? "border-primary font-semibold text-primary"
                 : "border-transparent text-ink-muted"
             }`}

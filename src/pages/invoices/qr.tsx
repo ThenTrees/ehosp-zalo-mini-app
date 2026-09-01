@@ -10,15 +10,15 @@ import type { VietQrPayload } from "@/types";
 export default function InvoiceQrPage() {
   const { id } = useParams();
   const [payload, setPayload] = useState<VietQrPayload | null>(null);
-  const [anhQr, setAnhQr] = useState("");
-  const [loi, setLoi] = useState("");
+  const [qrImage, setQrImage] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    let huy = false;
+    let cancel = false;
     api
       .invoiceQr(Number(id))
       .then(async (data) => {
-        if (huy) return;
+        if (cancel) return;
         setPayload(data);
         // Dựng ảnh QR ngay tại máy. Chuỗi thanh toán không đi qua dịch vụ nào
         // khác — đưa nó lên một API sinh ảnh bên ngoài là làm rò dữ liệu hoá
@@ -28,26 +28,26 @@ export default function InvoiceQrPage() {
           margin: 1,
           errorCorrectionLevel: "M",
         });
-        if (!huy) setAnhQr(url);
+        if (!cancel) setQrImage(url);
       })
       .catch((error) =>
-        setLoi(
+        setError(
           error instanceof Error
             ? error.message
             : "Không lấy được mã thanh toán.",
         ),
       );
     return () => {
-      huy = true;
+      cancel = true;
     };
   }, [id]);
 
-  if (loi) {
+  if (error) {
     return (
       <EmptyState
         icon={AlertCircleIcon}
         title="Không lấy được mã thanh toán"
-        hint={loi}
+        hint={error}
       />
     );
   }
@@ -69,9 +69,9 @@ export default function InvoiceQrPage() {
         </div>
 
         <div className="mt-4 flex justify-center">
-          {anhQr ? (
+          {qrImage ? (
             <img
-              src={anhQr}
+              src={qrImage}
               alt="Mã QR thanh toán"
               className="h-60 w-60 rounded"
             />
@@ -80,7 +80,7 @@ export default function InvoiceQrPage() {
           )}
         </div>
 
-        <DemNguoc expiresAt={payload.expiresAt} />
+        <Countdown expiresAt={payload.expiresAt} />
       </Card>
 
       <div className="flex gap-3 rounded-md bg-surface-sunken p-4">
@@ -99,21 +99,21 @@ export default function InvoiceQrPage() {
 }
 
 /** Đồng hồ đếm ngược tới `expiresAt`, cập nhật mỗi giây. */
-function DemNguoc({ expiresAt }: { expiresAt: string }) {
-  const [conLai, setConLai] = useState(() =>
+function Countdown({ expiresAt }: { expiresAt: string }) {
+  const [remaining, setRemaining] = useState(() =>
     Math.max(0, Math.floor((Date.parse(expiresAt) - Date.now()) / 1000)),
   );
 
   useEffect(() => {
-    const dinhKy = setInterval(() => {
-      setConLai(
+    const tick = setInterval(() => {
+      setRemaining(
         Math.max(0, Math.floor((Date.parse(expiresAt) - Date.now()) / 1000)),
       );
     }, 1000);
-    return () => clearInterval(dinhKy);
+    return () => clearInterval(tick);
   }, [expiresAt]);
 
-  if (conLai <= 0) {
+  if (remaining <= 0) {
     return (
       <div className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-error-soft px-3 py-1.5 text-sm font-semibold text-error">
         <AlertCircleIcon width={16} height={16} />
@@ -125,11 +125,11 @@ function DemNguoc({ expiresAt }: { expiresAt: string }) {
   return (
     <div className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-surface-sunken px-3 py-1.5 text-sm font-medium text-ink-muted">
       <ClockIcon width={16} height={16} />
-      {conLai < 3600
-        ? `Còn hiệu lực ${Math.floor(conLai / 60)}:${(conLai % 60)
+      {remaining < 3600
+        ? `Còn hiệu lực ${Math.floor(remaining / 60)}:${(remaining % 60)
             .toString()
             .padStart(2, "0")}`
-        : `Có hiệu lực đến ${gioVaNgay(expiresAt)}`}
+        : `Có hiệu lực đến ${timeAndDate(expiresAt)}`}
     </div>
   );
 }
@@ -138,10 +138,10 @@ function DemNguoc({ expiresAt }: { expiresAt: string }) {
  * "14:30 ngày 24/08". Mã sống quá một giờ thì đồng hồ đếm ngược vô nghĩa —
  * mm:ss của một mã còn hạn tới cuối năm hiện ra thành "188032:03".
  */
-function gioVaNgay(iso: string) {
-  const luc = new Date(Date.parse(iso));
-  const hai = (n: number) => n.toString().padStart(2, "0");
-  return `${hai(luc.getHours())}:${hai(luc.getMinutes())} ngày ${hai(
-    luc.getDate(),
-  )}/${hai(luc.getMonth() + 1)}`;
+function timeAndDate(iso: string) {
+  const at = new Date(Date.parse(iso));
+  const pad2 = (n: number) => n.toString().padStart(2, "0");
+  return `${pad2(at.getHours())}:${pad2(at.getMinutes())} ngày ${pad2(
+    at.getDate(),
+  )}/${pad2(at.getMonth() + 1)}`;
 }

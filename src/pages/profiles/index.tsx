@@ -17,16 +17,16 @@ import { activePatientIdState, profilesState, unlinkState } from "@/state";
 import { formatIsoDate } from "@/utils/format";
 import type { PatientProfile } from "@/types";
 
-const GIOI_TINH: Record<PatientProfile["gender"], string> = {
+const GENDER_LABELS: Record<PatientProfile["gender"], string> = {
   M: "Nam",
   F: "Nữ",
   U: "Chưa rõ",
 };
 
 /** Chữ cái đầu của tên, dùng thay ảnh đại diện — mini app không xin ảnh Zalo. */
-function chuCaiDau(hoTen: string) {
-  const phan = hoTen.trim().split(/\s+/);
-  return (phan[phan.length - 1]?.[0] ?? "?").toUpperCase();
+function initial(fullName: string) {
+  const parts = fullName.trim().split(/\s+/);
+  return (parts[parts.length - 1]?.[0] ?? "?").toUpperCase();
 }
 
 export default function ProfilesPage() {
@@ -34,7 +34,7 @@ export default function ProfilesPage() {
   const profiles = useAtomValue(profilesState);
   const [activeId, setActiveId] = useAtom(activePatientIdState);
   const unlink = useSetAtom(unlinkState);
-  const [dangHoiHuy, setDangHoiHuy] = useState(false);
+  const [confirmingUnlink, setConfirmingUnlink] = useState(false);
 
   if (profiles.length === 0) {
     return (
@@ -48,7 +48,7 @@ export default function ProfilesPage() {
     );
   }
 
-  const dangXem =
+  const viewing =
     profiles.find((p) => p.patientId === activeId) ?? profiles[0] ?? null;
 
   return (
@@ -56,43 +56,43 @@ export default function ProfilesPage() {
       <PageHeading title="Hồ sơ của tôi" />
 
       <div className="space-y-6 p-4 pt-0">
-        {dangXem && (
+        {viewing && (
           <Card className="text-center">
             <span className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary-soft text-2xl font-bold text-primary-ink">
-              {chuCaiDau(dangXem.fullName)}
+              {initial(viewing.fullName)}
             </span>
             <div className="mt-3 text-xl font-bold text-ink">
-              {dangXem.fullName}
+              {viewing.fullName}
             </div>
             <div className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-surface-sunken px-3 py-1 text-sm text-ink-muted">
               <IdCardIcon width={16} height={16} />
-              Mã BN: {dangXem.patientCode}
+              Mã BN: {viewing.patientCode}
             </div>
           </Card>
         )}
 
-        {dangXem && (
+        {viewing && (
           <Section title="Thông tin cá nhân">
             <ListRow
               icon={CalendarIcon}
               label="Ngày sinh"
-              value={formatIsoDate(dangXem.birthdate)}
+              value={formatIsoDate(viewing.birthdate)}
               valueOnRight
             />
-            <Duong />
+            <Divider />
             <ListRow
               icon={UserIcon}
               label="Giới tính"
-              value={GIOI_TINH[dangXem.gender]}
+              value={GENDER_LABELS[viewing.gender]}
               valueOnRight
             />
-            {dangXem.insuranceLast4 && (
+            {viewing.insuranceLast4 && (
               <>
-                <Duong />
+                <Divider />
                 <ListRow
                   icon={ShieldIcon}
                   label="Thẻ BHYT"
-                  value={`•••• ${dangXem.insuranceLast4}`}
+                  value={`•••• ${viewing.insuranceLast4}`}
                   valueOnRight
                 />
               </>
@@ -103,14 +103,14 @@ export default function ProfilesPage() {
         <Section title={`Hồ sơ đã liên kết (${profiles.length})`}>
           {profiles.map((profile, i) => (
             <div key={profile.patientId}>
-              {i > 0 && <Duong />}
+              {i > 0 && <Divider />}
               <button
                 type="button"
                 onClick={() => setActiveId(profile.patientId)}
                 className="flex w-full min-h-14 items-center gap-3 px-4 py-3 text-left active:bg-surface-sunken"
               >
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-base font-bold text-primary-ink">
-                  {chuCaiDau(profile.fullName)}
+                  {initial(profile.fullName)}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-base text-ink">
@@ -138,21 +138,21 @@ export default function ProfilesPage() {
             label="Lịch sử khám"
             onClick={() => navigate("/records", { viewTransition: true })}
           />
-          <Duong />
+          <Divider />
           <ListRow
             icon={IdCardIcon}
             label="Liên kết thêm hồ sơ người thân"
             onClick={() => navigate("/link", { viewTransition: true })}
           />
-          <Duong />
-          {dangHoiHuy ? (
+          <Divider />
+          {confirmingUnlink ? (
             <div className="space-y-3 p-4">
               <p className="text-sm text-ink">
-                Huỷ liên kết hồ sơ <b>{dangXem?.fullName}</b>? Bạn sẽ không xem
+                Huỷ liên kết hồ sơ <b>{viewing?.fullName}</b>? Bạn sẽ không xem
                 được lịch hẹn và hoá đơn của hồ sơ này cho tới khi liên kết lại.
               </p>
               <div className="flex gap-3">
-                <Button variant="ghost" onClick={() => setDangHoiHuy(false)}>
+                <Button variant="ghost" onClick={() => setConfirmingUnlink(false)}>
                   Giữ lại
                 </Button>
                 <Button
@@ -160,7 +160,7 @@ export default function ProfilesPage() {
                   onClick={async () => {
                     if (activeId === null) return;
                     await unlink(activeId);
-                    setDangHoiHuy(false);
+                    setConfirmingUnlink(false);
                     toast.success("Đã huỷ liên kết hồ sơ.");
                   }}
                 >
@@ -175,7 +175,7 @@ export default function ProfilesPage() {
               danger
               chevron={false}
               disabled={activeId === null}
-              onClick={() => setDangHoiHuy(true)}
+              onClick={() => setConfirmingUnlink(true)}
             />
           )}
         </Section>
@@ -201,6 +201,6 @@ function Section({
   );
 }
 
-function Duong() {
+function Divider() {
   return <div className="ml-16 border-t border-line" />;
 }
