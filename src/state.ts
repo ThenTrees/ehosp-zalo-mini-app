@@ -61,11 +61,31 @@ export const profilesState = atomWithRefresh(async (get) => {
 const activePatientIdBaseState = atom<number | null>(null);
 
 /**
- * Hồ sơ đang xem. Đọc ra là `number | null`; ghi vào thì đồng thời lưu xuống
- * kho lưu trữ của zmp-sdk để lần mở app sau vẫn đúng hồ sơ.
+ * Hồ sơ đang xem, đã ĐỐI CHIẾU với danh sách hồ sơ của phiên hiện tại.
+ *
+ * `activePatientIdBaseState` chỉ là *nguyện vọng* nạp từ kho lưu trữ — nó có
+ * thể là hồ sơ của lần liên kết trước, hoặc hồ sơ vừa bị huỷ liên kết. Đối
+ * chiếu ở đây chứ không ở từng trang: các trang lấy id này làm khoá cho
+ * `appointmentsState`/`invoicesState`, nên một id chưa đối chiếu sẽ đi gọi API
+ * trước khi phiên kịp xác nhận, máy chủ từ chối, và lỗi thoát ra khỏi atom bất
+ * đồng bộ làm error boundary nuốt cả cây (2026-09-01).
+ */
+export const activeProfileState = atom(async (get) => {
+  const profiles = await get(profilesState);
+  const preferredId = get(activePatientIdBaseState);
+  return profiles.find((p) => p.patientId === preferredId) ?? profiles[0] ?? null;
+});
+
+/**
+ * Mã hồ sơ đang xem. Đọc ra là `number | null` **sau khi đã đối chiếu**; ghi
+ * vào thì đồng thời lưu xuống kho lưu trữ của zmp-sdk để lần mở app sau vẫn
+ * đúng hồ sơ.
+ *
+ * Đọc là bất đồng bộ vì việc đối chiếu cần danh sách hồ sơ. Các trang tiêu thụ
+ * đã nằm dưới `Suspense` sẵn nên không phải đổi gì.
  */
 export const activePatientIdState = atom(
-  (get) => get(activePatientIdBaseState),
+  async (get) => (await get(activeProfileState))?.patientId ?? null,
   async (_get, set, patientId: number | null) => {
     set(activePatientIdBaseState, patientId);
     const session = await loadSession();
@@ -74,12 +94,6 @@ export const activePatientIdState = atom(
     }
   },
 );
-
-export const activeProfileState = atom(async (get) => {
-  const profiles = await get(profilesState);
-  const activeId = get(activePatientIdState);
-  return profiles.find((p) => p.patientId === activeId) ?? profiles[0] ?? null;
-});
 
 /**
  * Khôi phục hồ sơ đang xem khi mở app. `Layout` gọi đúng một lần lúc mount.

@@ -54,7 +54,11 @@ vi.mock("@/services", () => ({
   setSessionToken: h.setSessionToken,
 }));
 
-import { profilesState } from "@/state";
+import {
+  activePatientIdState,
+  hydrateSessionState,
+  profilesState,
+} from "@/state";
 
 beforeEach(() => {
   h.state.token = null;
@@ -110,5 +114,38 @@ describe("profilesState — phiên không hợp lệ", () => {
     await createStore().get(profilesState);
 
     expect(h.state.tokenAtMeCall).toEqual(["phien-hop-le"]);
+  });
+});
+
+/**
+ * Hồi quy cho lỗi tìm ra ngày 2026-09-01 khi chạy thử với dữ liệu giả.
+ *
+ * `activePatientIdState` trả thẳng giá trị nạp từ kho lưu trữ, và các trang
+ * dùng nó làm khoá cho `appointmentsState`/`invoicesState`. Nghĩa là một mã hồ
+ * sơ cũ — của lần liên kết trước, hoặc của hồ sơ đã bị huỷ liên kết — vẫn đi
+ * gọi API trước khi phiên kịp xác nhận nó còn hợp lệ. Máy chủ từ chối, lỗi
+ * thoát ra khỏi atom và error boundary nuốt cả cây.
+ *
+ * Mã hồ sơ chỉ được dùng sau khi đã đối chiếu với danh sách hồ sơ của phiên.
+ */
+describe("activePatientIdState — mã hồ sơ phải được đối chiếu", () => {
+  it("bỏ qua mã hồ sơ đã lưu nếu nó không thuộc phiên hiện tại", async () => {
+    h.state.storage = JSON.stringify({
+      token: "phien-hop-le",
+      activePatientId: 999, // hồ sơ của lần liên kết trước
+    });
+
+    const store = createStore();
+    await store.get(profilesState);
+    await store.set(hydrateSessionState);
+
+    // `me()` giả chỉ trả hồ sơ 101.
+    await expect(store.get(activePatientIdState)).resolves.toBe(101);
+  });
+
+  it("trả null khi phiên không có hồ sơ nào", async () => {
+    h.state.meError = new ApiError(401, "Phiên đã hết hạn.");
+
+    await expect(createStore().get(activePatientIdState)).resolves.toBeNull();
   });
 });
