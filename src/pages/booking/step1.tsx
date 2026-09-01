@@ -29,7 +29,7 @@ export default function Step1({ onNext }: { onNext: () => void }) {
   return (
     <div className="space-y-4 p-4">
       <div>
-        <h2 className="text-xl font-bold text-ink">Bạn muốn khám department nào?</h2>
+        <h2 className="text-xl font-bold text-ink">Bạn muốn khám khoa nào?</h2>
         <p className="mt-1 text-sm text-ink-muted">
           Phòng khám sẽ phân công bác sĩ trực của buổi bạn chọn.
         </p>
