@@ -53,6 +53,23 @@ riêng tư. Mini app chỉ báo **trạng thái** "kết quả đã có" và d�
 
 Quyết định này đã được cân nhắc lại trong buổi thiết kế ngày 2026-08-22 và **giữ nguyên**.
 
+**Sửa đổi 2026-08-30 — mở hé đúng một khe.** Nguyên tắc trên giữ nguyên với *nội
+dung*, nhưng phạm vi được nới thêm màn **Lịch sử khám** (`/records`) hiển thị
+**chỉ siêu dữ liệu**: ngày, khoa, mã lượt khám, trạng thái của từng lần khám; và
+mã đơn, ngày kê, trạng thái phát thuốc của từng đơn.
+
+Vì sao chấp nhận được: người bệnh cần biết "mình đã khám hôm nào, đơn đã phát
+chưa" để đối chiếu với quầy — đó là câu hỏi hành chính, không phải câu hỏi lâm
+sàng, và VNeID không trả lời nó. Không chẩn đoán, không kết quả, không tên thuốc,
+không liều dùng — ranh giới cũ không bị dịch một milimet.
+
+Hai phòng vệ đi kèm, vì một ranh giới không có chốt chặn thì sẽ trôi:
+
+1. Trang cố ý **không mang tên "Bệnh án"** — gọi vậy là hứa một thứ nó không có.
+2. `src/services/__tests__/no-clinical-content.test.ts` chốt bằng **danh sách
+   trắng** các trường được phép, chặt hơn danh sách từ cấm trước đó: thêm bất kỳ
+   trường nào vào hợp đồng dữ liệu mà quên cập nhật danh sách trắng là test đỏ.
+
 ## 3. Phạm vi giai đoạn 1
 
 ### Trong phạm vi
@@ -62,7 +79,7 @@ Quyết định này đã được cân nhắc lại trong buổi thiết kế n
 3. **Lịch hẹn của tôi** — danh sách sắp tới, nút xác nhận / huỷ
 4. **Số thứ tự hôm nay** — số của tôi, số đang gọi, ước tính thời gian chờ
 5. **Thanh toán** — hoá đơn chưa trả + mã VietQR
-6. **Thông báo "kết quả đã có"** — chỉ trạng thái, không nội dung
+6. **Lịch sử khám** — lượt khám và đơn thuốc, **chỉ siêu dữ liệu** (§2.1, sửa đổi 2026-08-30)
 
 ### Ngoài phạm vi (cố ý)
 
@@ -71,6 +88,11 @@ Quyết định này đã được cân nhắc lại trong buổi thiết kế n
 - Khám từ xa; phát hành lên App Store / Google Play
 - Đường web dự phòng cho người không dùng Zalo — **giai đoạn 2**
 - ZNS nhắc hẹn — **giai đoạn 2** (phụ thuộc dịch vụ 11 Communication)
+- Thông báo **"kết quả đã có"** — **giai đoạn 2**. Chuyển khỏi GĐ1 ngày
+  2026-09-01. Nó chỉ có giá trị khi có kênh đẩy thật (ZNS, cũng ở GĐ2); một
+  danh sách người bệnh phải tự mở app mới thấy thì không giải quyết được việc
+  gì mà màn Lịch hẹn và Lịch sử khám chưa làm. Khi làm, giữ nguyên ràng buộc
+  gốc: **chỉ trạng thái**, dẫn sang VNeID hoặc quầy, không nội dung kết quả.
 
 ## 4. Kiến trúc
 
@@ -199,7 +221,7 @@ phòng khám hay không. Sai ở bất kỳ bước nào đều trả về cùng
 | POST | `/api/patient-app/link` | Zalo token + yếu tố thứ hai |
 | GET | `/api/patient-app/me` | Phiên app |
 | GET | `/api/patient-app/departments` | Công khai |
-| GET | `/api/patient-app/slots?department=&date=` | Phiên app |
+| GET | `/api/patient-app/slots?department_id=&date=` | Phiên app |
 | POST | `/api/patient-app/appointments` | Phiên app |
 | POST | `/api/patient-app/redeem` | Mã hẹn **trong thân JSON** |
 | POST | `/api/patient-app/appointments/:id/confirm` | Phiên ngắn hạn |
@@ -207,7 +229,7 @@ phòng khám hay không. Sai ở bất kỳ bước nào đều trả về cùng
 | GET | `/api/patient-app/queue` | Phiên ngắn hạn |
 | GET | `/api/patient-app/invoices` | Phiên app |
 | GET | `/api/patient-app/invoices/:id/qr` | Phiên app |
-| GET | `/api/patient-app/notifications` | Phiên app |
+| GET | `/api/patient-app/notifications` | Phiên app — **giai đoạn 2**, xem §3 |
 
 Bổ sung cho D4 (nhiều hồ sơ): `GET /api/patient-app/me` trả **danh sách hồ sơ đã
 liên kết**; mọi endpoint đọc dữ liệu nhận thêm tham số `patient_id`, và server
@@ -222,6 +244,15 @@ Bổ sung thứ hai — **thiếu trong bản gốc §6**: danh sách 13 endpoin
 | GET | `/api/patient-app/appointments?patient_id=&from=&to=` | Phiên app |
 | GET | `/api/patient-app/appointments/:id` | Phiên app **hoặc** phiên ngắn hạn |
 | POST | `/api/patient-app/unlink` | Phiên app — thân JSON mang `patientId` |
+
+Bổ sung thứ ba — hai tuyến của màn **Lịch sử khám**, theo sửa đổi §2.1 ngày
+2026-08-30. Cả hai chỉ trả siêu dữ liệu, và `no-clinical-content.test.ts` chốt
+danh sách trắng các trường:
+
+| Method | Đường dẫn | Xác thực |
+|---|---|---|
+| GET | `/api/patient-app/visits?patient_id=` | Phiên app |
+| GET | `/api/patient-app/prescriptions?patient_id=` | Phiên app |
 
 `unlink` cũng thiếu trong bản gốc §6, dù §10 đặt nó thành tiêu chí nghiệm thu
 ("huỷ liên kết được, có hiệu lực ngay, và liên kết lại được sau đó").
@@ -311,7 +342,9 @@ công cụ tra cứu cho tiếp đón, và đúng là thứ §5.4 cấm.
 | `/queue` | Số thứ tự hôm nay | `back`, `title` |
 | `/invoices` | Hoá đơn chưa trả | `back`, `title: "Hóa đơn"` |
 | `/invoices/:id/qr` | Mã VietQR | `back`, `title` |
-| `/notifications` | Thông báo (chỉ trạng thái) | `back`, `title` |
+| `/records` | Lịch sử khám — lượt khám + đơn thuốc, chỉ siêu dữ liệu | `back`, `title` |
+| `/records/:visitId` | Chi tiết một lượt khám | `back`, `title: "custom"` |
+| ~~`/notifications`~~ | Thông báo (chỉ trạng thái) — **giai đoạn 2** | — |
 
 ### 7.3. Tầng dữ liệu
 
