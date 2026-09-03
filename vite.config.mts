@@ -19,9 +19,15 @@ export default ({ mode }: { mode: string }) => {
     plugins: [zaloMiniApp(), react()],
     define: {
       "import.meta.env.VITE_API_BASE_URL": JSON.stringify(
-        env.VITE_API_BASE_URL ?? ""
+        env.VITE_API_BASE_URL ?? "",
       ),
       "import.meta.env.VITE_USE_FAKE": JSON.stringify(env.VITE_USE_FAKE ?? ""),
+      // Số điện thoại thay cho SDK Zalo khi phát triển — xem
+      // `src/services/config.ts › soDienThoaiGia`. `readRuntimeConfig` bỏ qua
+      // nó ở bản dựng phát hành, nên nhúng vào đây là vô hại.
+      "import.meta.env.VITE_ZALO_PHONE_GIA": JSON.stringify(
+        env.VITE_ZALO_PHONE_GIA ?? "",
+      ),
     },
     build: {
       assetsInlineLimit: 0,

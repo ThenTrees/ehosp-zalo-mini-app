@@ -21,6 +21,16 @@ export async function getPhoneToken(): Promise<string> {
     return "token-so-dien-thoai-gia";
   }
 
+  /*
+   * SỐ THAY CHO SDK — xem `config.ts › soDienThoaiGia`. Máy chủ ở chế độ phát
+   * triển coi chính chuỗi này LÀ số điện thoại, nên gửi thẳng số lên là đủ để
+   * đi trọn luồng liên kết THẬT: tra `emr_patient_link`, đối chiếu ngày sinh,
+   * cấp phiên, ghi nhật ký truy cập. Không nhánh nào của máy chủ bị bỏ qua.
+   */
+  if (runtimeConfig.soDienThoaiGia) {
+    return runtimeConfig.soDienThoaiGia;
+  }
+
   const { token } = await getPhoneNumber();
   return token ?? "";
 }
@@ -42,6 +52,16 @@ export async function getPhoneToken(): Promise<string> {
 export async function getUserAccessToken(): Promise<string> {
   if (runtimeConfig.useFake) {
     return "access-token-gia";
+  }
+
+  /*
+   * Đi cùng `soDienThoaiGia`: nhánh dự phòng của máy chủ KHÔNG đọc `access_token`
+   * (nó trả về ngay ở `laySoDienThoai` trước khi chạm `graph.zalo.me`), nhưng
+   * `POST /link` vẫn đòi trường này có mặt. Trả một chuỗi nhận ra được để ai đọc
+   * nhật ký biết lượt ấy KHÔNG đi qua Zalo thật.
+   */
+  if (runtimeConfig.soDienThoaiGia) {
+    return "access-token-bo-qua-sdk";
   }
 
   return (await getAccessToken()) ?? "";

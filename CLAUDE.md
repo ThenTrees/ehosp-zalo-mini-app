@@ -86,7 +86,9 @@ thật): chèn một dòng `emr_patient_app_link` và một dòng
 | `fake/` | Cài đặt giả cùng interface, mô phỏng cả quota 30%, luật tối đa 2 lịch hẹn đang mở và chốt phạm vi hồ sơ |
 | `index.ts` | Chọn thật/giả theo `VITE_USE_FAKE`, giữ token hiện hành |
 
-Đổi sang back-end thật = đặt `VITE_USE_FAKE=false` và `VITE_API_BASE_URL` trong `.env`. Không sửa dòng mã nào. Chỉ có **hai** chế độ; chế độ `hybrid` (trộn tuyến thật với tuyến giả) đã bị bỏ ngày 2026-08-30 khi mọi tuyến mini app cần đều đã có thật.
+Đổi sang back-end thật = đặt `VITE_USE_FAKE=false` và `VITE_API_BASE_URL` trong `.env`. Không sửa dòng mã nào. Vẫn chỉ có **hai** chế độ dữ liệu; chế độ `hybrid` (trộn tuyến thật với tuyến giả) đã bị bỏ ngày 2026-08-30 khi mọi tuyến mini app cần đều đã có thật.
+
+**`VITE_ZALO_PHONE_GIA` không phải chế độ thứ ba.** `VITE_USE_FAKE` gác *hai* thứ cùng lúc — tầng dữ liệu **và** SDK điện thoại — nên trước ngày 03/09/2026 không có cách nào đi trọn luồng liên kết với máy chủ THẬT trên trình duyệt: bật giả thì máy chủ không được thử dòng nào, tắt giả thì `getPhoneNumber()` của `zmp-sdk` không chạy ngoài ứng dụng Zalo. Đặt `VITE_ZALO_PHONE_GIA` thành một số **có thật trong `emr_patient_link`** thì máy khách gửi thẳng số ấy làm mã; nó khớp với nhánh đã có sẵn ở máy chủ (`modules/patient-app/zalo.ts`: thiếu `ZALO_APP_SECRET` và `NODE_ENV` khác `production` thì coi mã gửi lên LÀ số điện thoại). Tầng dữ liệu **vẫn thật** — mọi tuyến, mọi dòng CSDL, mọi dòng nhật ký truy cập đều thật; cờ chỉ thay đúng một lời gọi SDK. `readRuntimeConfig` **bỏ qua** nó khi `import.meta.env.PROD`, và ném lỗi nếu trị không phải số điện thoại Việt Nam. Khai từng chữ trong `vite.config.mts › define` như mọi biến `VITE_*` khác, nếu không nó im lặng thành `undefined`.
 
 Ba ràng buộc đã được biến thành test chạy được: **không bí mật nào trong URL** (`http.test.ts`), **không trường lâm sàng nào trong hợp đồng dữ liệu** (`no-clinical-content.test.ts`), và **client khớp từng tham số với `router.ts` của eHosp** (`patient-app-api.test.ts`).
 

@@ -8,10 +8,19 @@ import { createHttpApi, type PatientAppApi } from "./patient-app-api";
  * đúng chuỗi `import.meta.env.VITE_API_BASE_URL`. Truyền cả object thì bản
  * build ra không có khoá VITE_* nào và ứng dụng trắng màn hình.
  */
-export const runtimeConfig = readRuntimeConfig({
-  VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
-  VITE_USE_FAKE: import.meta.env.VITE_USE_FAKE,
-});
+export const runtimeConfig = readRuntimeConfig(
+  {
+    VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
+    VITE_USE_FAKE: import.meta.env.VITE_USE_FAKE,
+    /*
+     * Cũng phải khai TỪNG CHỮ trong `vite.config.mts › define`, cùng lý do với
+     * hai khoá trên: bản build thay chuỗi này bằng hằng, không có `define` thì
+     * nó thành `undefined` và cờ im lặng không có tác dụng.
+     */
+    VITE_ZALO_PHONE_GIA: import.meta.env.VITE_ZALO_PHONE_GIA,
+  },
+  import.meta.env.PROD,
+);
 
 /** Mã phiên hiện hành, do state.ts cập nhật sau khi liên kết. */
 let currentSessionToken: string | null = null;
