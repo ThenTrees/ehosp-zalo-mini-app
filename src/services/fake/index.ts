@@ -87,6 +87,12 @@ export function createFakeApi(): PatientAppApi {
         fullName: PROFILES[0].fullName,
       };
     },
+    /*
+     * Tầng giả trả một `blob:` rỗng chứ không trả URL máy chủ: bản demo KHÔNG
+     * được chạm mạng, và trả một đường dẫn thật ở đây là mở đúng cái cửa ấy.
+     * Bấm vào sẽ ra một trang trắng — đúng thứ nên xảy ra khi không có tệp.
+     */
+    taiLieuUrl: () => "about:blank",
     dangNhap: async () => {
       await delay();
       return { token: "phien-gia-sau-dang-nhap" };
@@ -146,6 +152,22 @@ export function createFakeApi(): PatientAppApi {
           },
         ],
         bangKe: null,
+        taiLieu: [
+          {
+            id: 9001,
+            loai: "BENH_AN_KY",
+            banSo: 1,
+            tenHienThi: "Bệnh án ngoại trú",
+            soByte: 211810,
+          },
+          {
+            id: 9002,
+            loai: "DON_THUOC_KY",
+            banSo: 1,
+            tenHienThi: "Đơn thuốc",
+            soByte: 199463,
+          },
+        ],
       };
     },
     async link(input) {

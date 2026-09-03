@@ -63,6 +63,13 @@ export interface PatientAppApi {
     id: number;
     patientId: number;
   }): Promise<ChiTietLuotKham>;
+  /**
+   * Đường mở một tờ giấy ĐÃ KÝ. Trả URL chứ không trả byte: tệp PDF đi thẳng từ
+   * máy chủ vào trình xem của điện thoại, không phải qua bộ nhớ của mini app —
+   * một tờ bệnh án vài trăm KB nhân với số lần bấm là thứ không đáng giữ trong
+   * RAM của một chiếc điện thoại cũ.
+   */
+  taiLieuUrl(params: { id: number; patientId: number }): string;
   prescriptions(params: { patientId: number }): Promise<PrescriptionSummary[]>;
   invoices(params: { patientId: number }): Promise<InvoiceSummary[]>;
   invoiceQr(id: number): Promise<VietQrPayload>;
@@ -194,6 +201,16 @@ export function createHttpApi(
       call("/dang-nhap", { method: "POST", body: input, anonymous: true }),
     doiMatKhau: (input) =>
       call("/doi-mat-khau", { method: "POST", body: input }),
+
+    /*
+     * Dùng `baseUrl` mà nhà máy đã nhận, KHÔNG nhập `runtimeConfig` từ
+     * `./index`: tệp ấy nhập ngược `createHttpApi` từ đây, nên một dòng import
+     * thêm là một vòng tròn — và nó không nổ lúc biên dịch mà nổ lúc NẠP
+     * MÔ-ĐUN, dưới dạng "mod.createHttpApi is not a function" ở một tệp thử
+     * không liên quan gì. Đo được ngày 2026-09-04.
+     */
+    taiLieuUrl: ({ id, patientId }) =>
+      `${baseUrl}/tai-lieu/${id}/tep?patient_id=${patientId}`,
 
     visitDetail: ({ id, patientId }) =>
       call<ChiTietLuotKham>(`/visits/${id}`, {

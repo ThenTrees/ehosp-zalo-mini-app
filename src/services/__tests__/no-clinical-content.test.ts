@@ -49,7 +49,15 @@ const KHONG_BAO_GIO = [
  * phải dừng lại tự hỏi trường ấy có đáng nằm trên màn hình người bệnh không.
  */
 const ALLOWED_FIELDS: Record<string, string[]> = {
-  VisitSummary: ["id", "visitCode", "visitDate", "status", "departmentId"],
+  VisitSummary: [
+    "id",
+    "visitCode",
+    "visitDate",
+    "status",
+    "departmentId",
+    "chanDoanChinh",
+  ],
+  TaiLieuDaKy: ["id", "loai", "banSo", "tenHienThi", "soByte"],
   PrescriptionSummary: ["id", "code", "status", "issuedDate", "visitId"],
   ChanDoan: ["ma", "ten", "chinh"],
   ThuocDaKe: [
@@ -87,6 +95,7 @@ const ALLOWED_FIELDS: Record<string, string[]> = {
     "donThuoc",
     "xetNghiem",
     "bangKe",
+    "taiLieu",
   ],
 };
 

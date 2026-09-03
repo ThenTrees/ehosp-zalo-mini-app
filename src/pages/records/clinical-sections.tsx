@@ -1,4 +1,5 @@
 import { Card, SectionHeader } from "@/components/ui";
+import { api } from "@/services";
 import type { ChiTietLuotKham } from "@/types";
 
 /**
@@ -187,6 +188,68 @@ export function BangKeSection({ d }: { d: ChiTietLuotKham }) {
             <span>{soTien(bk.patient_amount)}</span>
           </div>
         </div>
+      </div>
+    </Card>
+  );
+}
+
+const TEN_LOAI: Record<string, string> = {
+  BENH_AN_KY: "Bệnh án ngoại trú",
+  DON_THUOC_KY: "Đơn thuốc",
+  BANG_KE_KY: "Bảng kê chi phí",
+  HOA_DON_KY: "Hoá đơn",
+  CHI_DINH_CLS_KY: "Phiếu chỉ định cận lâm sàng",
+  KQ_XN: "Phiếu kết quả xét nghiệm",
+};
+
+const coKB = (b: number | null): string =>
+  b == null ? "" : `${Math.max(1, Math.round(b / 1024))} KB`;
+
+/**
+ * GIẤY TỜ ĐÃ KÝ của lượt khám.
+ *
+ * Khác bốn khối trên ở một điểm đáng nói: chúng đọc lại từ CSDL mỗi lần mở, còn
+ * đây là những tờ ĐÃ KHOÁ trong ngăn ghi-một-lần — bản mà người bệnh cầm đi đâu
+ * cũng đối chiếu được, và là thứ họ cần khi đi khám nơi khác.
+ *
+ * MỞ BẰNG `<a target="_blank">`, KHÔNG TẢI VỀ RỒI DỰNG BLOB. Tệp đi thẳng từ
+ * máy chủ vào trình xem PDF của điện thoại; giữ vài trăm KB trong RAM của một
+ * chiếc máy cũ để làm đúng việc trình duyệt đã làm sẵn là một đánh đổi sai.
+ * Máy chủ đã đặt `Content-Disposition: inline` và `Cache-Control: no-store`.
+ */
+export function TaiLieuSection({
+  d,
+  patientId,
+}: {
+  d: ChiTietLuotKham;
+  patientId: number;
+}) {
+  if (d.taiLieu.length === 0) return null;
+  return (
+    <Card>
+      <SectionHeader title="Giấy tờ của lần khám này" />
+      <div className="flex flex-col">
+        {d.taiLieu.map((t) => (
+          <a
+            key={t.id}
+            href={api.taiLieuUrl({ id: t.id, patientId })}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-baseline justify-between gap-3 border-b border-line py-2.5 last:border-0"
+          >
+            <span className="min-w-0 flex-1 text-ink">
+              {TEN_LOAI[t.loai] ?? t.tenHienThi ?? t.loai}
+              {t.banSo > 1 ? (
+                <span className="ml-1 text-xs text-ink-muted">
+                  bản {t.banSo}
+                </span>
+              ) : null}
+            </span>
+            <span className="shrink-0 text-xs text-primary-ink">
+              Mở PDF{t.soByte ? ` · ${coKB(t.soByte)}` : ""}
+            </span>
+          </a>
+        ))}
       </div>
     </Card>
   );

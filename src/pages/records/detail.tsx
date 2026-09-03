@@ -28,6 +28,7 @@ import PrescriptionCard from "./prescription-card";
 import {
   BangKeSection,
   ChanDoanSection,
+  TaiLieuSection,
   DonThuocSection,
   XetNghiemSection,
 } from "./clinical-sections";
@@ -106,6 +107,7 @@ function Body({ visitId, patientId }: { visitId: number; patientId: number }) {
           <DonThuocSection d={chiTiet} />
           <XetNghiemSection d={chiTiet} />
           <BangKeSection d={chiTiet} />
+          <TaiLieuSection d={chiTiet} patientId={patientId} />
         </>
       ) : null}
 

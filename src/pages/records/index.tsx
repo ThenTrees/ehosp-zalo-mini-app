@@ -1,69 +1,46 @@
-import { useState } from "react";
 import { useAtomValue } from "jotai";
 import { useNavigate } from "react-router-dom";
 import LinkRequired from "@/components/link-required";
-import { ClipboardIcon, InfoIcon, PillIcon } from "@/components/icons";
-import { Card, EmptyState, Segmented } from "@/components/ui";
-import { activePatientIdState, prescriptionsState, visitsState } from "@/state";
+import { ClipboardIcon } from "@/components/icons";
+import { EmptyState } from "@/components/ui";
+import { activePatientIdState, visitsState } from "@/state";
 import VisitCard from "./visit-card";
-import PrescriptionCard from "./prescription-card";
-
-type Tab = "kham" | "thuoc";
 
 /**
- * Lịch sử khám — hai lát cắt của cùng một quá khứ: các lần đã khám và các đơn
- * thuốc sinh ra từ chúng.
+ * Lịch sử khám — MỘT danh sách các lần đã khám, mỗi dòng kèm chẩn đoán chính.
  *
- * Tên trang cố ý KHÔNG phải "Bệnh án". Trang này không hiển thị chẩn đoán, kết
- * quả hay tên thuốc — spec §6.1 quy tắc 1 — nên gọi nó là bệnh án sẽ hứa với
- * người bệnh một thứ nó không có, và họ sẽ mở ra rồi thất vọng đúng vào lúc
- * đang cần thông tin nhất.
+ * ═══════════════════════════════════════════════════════════════════════════
+ * HAI THỨ ĐÃ GỠ NGÀY 2026-09-04, và cả hai vì cùng một lý do
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * · TAB "ĐƠN THUỐC". Nó tồn tại khi màn chi tiết chưa có gì để xem: hồi ấy đó
+ *   là cách duy nhất để người bệnh biết mình đã được kê những đơn nào. Nay chạm
+ *   vào một lần khám là thấy đơn thuốc ĐẦY ĐỦ của lần ấy — tên thuốc, hàm
+ *   lượng, liều, lời dặn — nên một danh sách đơn tách rời, chỉ mang mã và trạng
+ *   thái, là bản NGHÈO HƠN của thứ đã có, đặt ở một chỗ khác. Hai lối vào cùng
+ *   một dữ liệu, lối này kém hơn lối kia, là thứ làm người dùng phải học xem
+ *   nên bấm đâu.
+ *
+ * · DẢI "xem tại Sổ sức khoẻ điện tử trên VNeID". Nó bảo người bệnh đi nơi khác
+ *   tìm đúng những thứ màn này vừa bày ra. Bản có giá trị PHÁP LÝ vẫn ở VNeID
+ *   và điều đó vẫn đúng — nhưng nói câu ấy ngay trên một danh sách đã mang chẩn
+ *   đoán là dạy họ đừng dùng thứ vừa làm cho họ.
+ *
+ * TÊN TRANG vẫn KHÔNG phải "Bệnh án", và lý do đã đổi: trước đây vì trang không
+ * có nội dung lâm sàng nên gọi vậy là hứa quá. Nay nó CÓ, nhưng "bệnh án" là
+ * một hồ sơ pháp lý có hình dạng do TT 32 quy định, còn đây là bản đọc cho
+ * người bệnh. Gọi đúng tên vẫn quan trọng, chỉ vì một lẽ khác.
  */
 export default function RecordsPage() {
   const patientId = useAtomValue(activePatientIdState);
-  const [tab, setTab] = useState<Tab>("kham");
 
   if (patientId === null) {
     return (
-      <LinkRequired message="Liên kết hồ sơ để xem lại các lần khám và đơn thuốc của bạn." />
+      <LinkRequired message="Liên kết hồ sơ để xem lại các lần khám của bạn." />
     );
   }
 
-  return (
-    <div>
-      <SliceChoice tab={tab} onChange={setTab} patientId={patientId} />
-      {tab === "kham" ? (
-        <VisitList patientId={patientId} />
-      ) : (
-        <PrescriptionList patientId={patientId} />
-      )}
-      <ClinicalNotice />
-    </div>
-  );
-}
-
-function SliceChoice({
-  tab,
-  onChange,
-  patientId,
-}: {
-  tab: Tab;
-  onChange: (tab: Tab) => void;
-  patientId: number;
-}) {
-  const visits = useAtomValue(visitsState(patientId));
-  const prescriptions = useAtomValue(prescriptionsState(patientId));
-
-  return (
-    <Segmented
-      value={tab}
-      onChange={onChange}
-      options={[
-        { value: "kham", label: "Lượt khám", count: visits.length },
-        { value: "thuoc", label: "Đơn thuốc", count: prescriptions.length },
-      ]}
-    />
-  );
+  return <VisitList patientId={patientId} />;
 }
 
 function VisitList({ patientId }: { patientId: number }) {
@@ -93,76 +70,6 @@ function VisitList({ patientId }: { patientId: number }) {
           }
         />
       ))}
-    </div>
-  );
-}
-
-function PrescriptionList({ patientId }: { patientId: number }) {
-  const navigate = useNavigate();
-  const prescriptions = useAtomValue(prescriptionsState(patientId));
-  const visits = useAtomValue(visitsState(patientId));
-
-  if (prescriptions.length === 0) {
-    return (
-      <EmptyState
-        icon={PillIcon}
-        title="Chưa có đơn thuốc nào"
-        hint="Đơn thuốc bác sĩ kê cho bạn sẽ xuất hiện ở đây sau khi khám xong."
-      />
-    );
-  }
-
-  return (
-    <div className="space-y-3 p-4">
-      {prescriptions.map((prescription) => (
-        <PrescriptionCard
-          key={prescription.id}
-          prescription={prescription}
-          // Đơn thuốc luôn có `visitId`, nhưng lượt khám tương ứng có thể nằm
-          // ngoài 100 dòng gần nhất mà máy chủ trả về. Không tìm thấy thì bỏ
-          // hẳn lối đi, thay vì điều hướng tới một trang chắc chắn báo 404.
-          onClick={
-            visits.some((visit) => visit.id === prescription.visitId)
-              ? () =>
-                  navigate(`/records/${prescription.visitId}`, {
-                    viewTransition: true,
-                  })
-              : undefined
-          }
-        />
-      ))}
-    </div>
-  );
-}
-
-/**
- * Nói thẳng giới hạn của trang, ngay trên trang.
- *
- * Người bệnh mở "Lịch sử khám" để tìm chẩn đoán là chuyện sẽ xảy ra. Để họ tự
- * cuộn hết danh sách rồi tự kết luận "app này thiếu" là tệ hơn việc nói trước
- * chỗ nào có thứ họ cần.
- */
-function ClinicalNotice() {
-  return (
-    <div className="px-4 pb-6">
-      <Card className="flex gap-3">
-        <InfoIcon
-          width={20}
-          height={20}
-          className="mt-0.5 shrink-0 text-primary-ink"
-        />
-        {/*
-          Dải chữ cũ ở đây nói "mini app chỉ hiển thị trạng thái… chẩn đoán, kết
-          quả xét nghiệm và tên thuốc xem tại VNeID". Câu ấy ĐÚNG cho tới
-          2026-09-03 và SAI kể từ hôm ấy — chạm vào một lần khám là thấy đủ bốn
-          thứ. Để lại là dạy người bệnh đừng bấm vào thứ vừa được làm ra cho họ.
-        */}
-        <p className="text-sm text-ink-muted">
-          Chạm vào một lần khám để xem chẩn đoán, đơn thuốc, kết quả xét nghiệm
-          và bảng kê chi phí của lần đó. Bản có giá trị pháp lý nằm ở Sổ sức
-          khoẻ điện tử trên VNeID.
-        </p>
-      </Card>
     </div>
   );
 }

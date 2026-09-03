@@ -6,7 +6,8 @@ const DATE = "2026-09-01";
 async function linkedApi() {
   const api = createFakeApi();
   const result = await api.link({
-    zaloPhoneToken: "token-gia", zaloAccessToken: "access-gia",
+    zaloPhoneToken: "token-gia",
+    zaloAccessToken: "access-gia",
     birthdate: "1990-05-12",
   });
   if (result.outcome !== "LINKED") {
@@ -21,14 +22,21 @@ const morningSlot = (slots: { session: string; available: boolean }[]) =>
 describe("createFakeApi — liên kết", () => {
   it("hỏi ngày sinh trước khi cho liên kết", async () => {
     const api = createFakeApi();
-    const result = await api.link({ zaloPhoneToken: "token-gia", zaloAccessToken: "access-gia" });
+    const result = await api.link({
+      zaloPhoneToken: "token-gia",
+      zaloAccessToken: "access-gia",
+    });
     expect(result).toEqual({ outcome: "CHALLENGE", need: "BIRTHDATE" });
   });
 
   it("từ chối khi ngày sinh sai, không tiết lộ hồ sơ nào tồn tại", async () => {
     const api = createFakeApi();
     await expect(
-      api.link({ zaloPhoneToken: "token-gia", zaloAccessToken: "access-gia", birthdate: "1970-01-01" }),
+      api.link({
+        zaloPhoneToken: "token-gia",
+        zaloAccessToken: "access-gia",
+        birthdate: "1970-01-01",
+      }),
     ).rejects.toThrow(/Thông tin không khớp/);
   });
 
@@ -121,7 +129,11 @@ describe("createFakeApi — đặt lịch", () => {
     const appointment = await book("2026-09-01");
     await book("2026-09-02");
 
-    await api.cancelAppointment({ id: appointment.id, patientId, reason: "Đổi ý" });
+    await api.cancelAppointment({
+      id: appointment.id,
+      patientId,
+      reason: "Đổi ý",
+    });
 
     // Huỷ xong thì hồ sơ chỉ còn 1 lịch hẹn đang mở, đặt thêm được.
     await expect(book("2026-09-03")).resolves.toMatchObject({
@@ -194,7 +206,9 @@ describe("createFakeApi — lịch sử khám", () => {
   it("không trả về đơn thuốc ở trạng thái nháp", async () => {
     const { api, profiles } = await linkedApi();
     for (const profile of profiles) {
-      const prescription = await api.prescriptions({ patientId: profile.patientId });
+      const prescription = await api.prescriptions({
+        patientId: profile.patientId,
+      });
       expect(prescription.map((d) => d.status)).not.toContain("DRAFT");
     }
   });
@@ -217,6 +231,7 @@ describe("createFakeApi — không rò rỉ nội dung lâm sàng", () => {
 
     for (const visit of await api.visits({ patientId })) {
       expect(Object.keys(visit).sort()).toEqual([
+        "chanDoanChinh",
         "departmentId",
         "id",
         "status",

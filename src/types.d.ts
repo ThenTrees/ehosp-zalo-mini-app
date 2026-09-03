@@ -95,6 +95,14 @@ export interface VisitSummary {
   status: VisitStatus;
   /** Tra tên khoa qua danh mục `/departments`, máy chủ không trả kèm tên. */
   departmentId: number;
+  /**
+   * Chẩn đoán CHÍNH, đi kèm ngay trong danh sách.
+   *
+   * Người bệnh mở màn Lịch sử khám để tìm "lần tôi bị viêm phế quản", không
+   * phải "VK2026090200049". `null` khi lượt ấy chưa có chẩn đoán — khác với
+   * chuỗi rỗng, và màn hình phải im lặng chứ không vẽ một dòng trống.
+   */
+  chanDoanChinh: { ma: string; ten: string } | null;
 }
 
 /**
@@ -253,6 +261,14 @@ export interface BangKeLuotKham {
   items: DongBangKe[];
 }
 
+export interface TaiLieuDaKy {
+  id: number;
+  loai: string;
+  banSo: number;
+  tenHienThi: string | null;
+  soByte: number | null;
+}
+
 export interface ChiTietLuotKham {
   visitId: number;
   visitCode: string;
@@ -265,6 +281,12 @@ export interface ChiTietLuotKham {
   xetNghiem: PhieuXetNghiem[] | null;
   /** `null` = chưa có bảng kê, hoặc dịch vụ tài chính không trả lời được. */
   bangKe: BangKeLuotKham | null;
+  /**
+   * Giấy tờ ĐÃ KÝ và đóng băng của lượt khám. Khác với bốn nhóm trên: chúng
+   * đọc lại từ CSDL mỗi lần mở, còn đây là những tờ đã khoá trong ngăn
+   * ghi-một-lần — bản người bệnh cầm đi đâu cũng đối chiếu được.
+   */
+  taiLieu: TaiLieuDaKy[];
 }
 
 /* ─────────────────────── Tài khoản: ghi danh và đăng nhập ─────────────── */
