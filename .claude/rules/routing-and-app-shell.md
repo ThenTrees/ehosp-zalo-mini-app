@@ -28,8 +28,8 @@ paths:
 | `/appointments` | Lịch hẹn của tôi | `tab` |
 | `/appointments/:id` | Chi tiết lịch hẹn | `back`, `title: "custom"` |
 | `/queue` | Số thứ tự hôm nay | `back` |
-| `/records` | Lịch sử khám (lượt khám / đơn thuốc, chỉ trạng thái) | `back` |
-| `/records/:visitId` | Chi tiết một lần khám | `back`, `title: "custom"` |
+| `/records` | Lịch sử khám (danh sách lượt khám / đơn thuốc) | `back` |
+| `/records/:visitId` | Chi tiết một lần khám — **kèm bốn khối lâm sàng** (chẩn đoán · đơn thuốc có tên và liều · kết quả xét nghiệm · bảng kê), xem `src/pages/records/clinical-sections.tsx` | `back`, `title: "custom"` |
 | `/invoices` | Hoá đơn — **tạm ngưng**, lời báo tĩnh, không gọi API, không có tab | `back` |
 
 `:id` ở các đường dẫn trên là khoá chính, **không bao giờ là mã hẹn** — mã hẹn là thông tin xác thực dạng bearer và không được nằm trong URL (spec §6.2; `buildUrl` trong `src/services/http.ts` chặn việc đó).

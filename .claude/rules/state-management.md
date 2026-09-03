@@ -31,6 +31,7 @@ Thân yêu cầu đi bằng **snake_case** (`patient_id`, `department_id`) vì `
 - Danh mục: atom async phẳng (`departmentsState`).
 - **Mọi atom đọc dữ liệu của người bệnh là `atomFamily` khoá theo `patientId`** (`appointmentsState`, `queueState`, `visitsState`, `prescriptionsState`) — chuyển hồ sơ người thân không được lẫn dữ liệu.
 - **Mọi atom dữ liệu đi qua `nuot401`**: 401 thành giá trị rỗng và dọn phiên (chưa liên kết và phiên hết hạn cùng về một đích); mọi mã lỗi khác NỔI LÊN cho `ErrorBoundary` của route con hoặc `SilentBoundary` của từng thẻ bắt. Nuốt cả 404/500 là nguỵ trang sự cố máy chủ thành "bạn chưa có dữ liệu nào".
+- `visitDetailState` khoá theo **cả** `{ id, patientId }` và **không đi qua `nuot401`** cho 404/500: một màn bệnh án trắng trơn trông y hệt "lượt khám này không có gì", mà hai chuyện ấy khác hẳn nhau.
 - `appointmentByIdState` khoá theo **cả** `{ id, patientId }`: máy chủ đối chiếu `patient_id` với phạm vi phiên ở mọi tuyến đọc, nên mã lịch hẹn một mình không đủ để hỏi.
 - `departmentNameState` là hàm tra `departmentId -> tên khoa`, dựng một lần từ `departmentsState`. `/visits` chỉ trả mã khoa, và để mỗi trang tự dựng `Map` là ba bản sao của cùng một việc.
 - Cần làm mới sau khi ghi thì dùng `atomWithRefresh` và gọi setter không tham số.
