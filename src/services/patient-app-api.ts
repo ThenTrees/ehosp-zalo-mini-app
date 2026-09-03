@@ -1,5 +1,9 @@
 import { request } from "./http";
 import type {
+  ChiTietLuotKham,
+  DangNhapInput,
+  GhiDanhInput,
+  GhiDanhResponse,
   Appointment,
   CreateAppointmentInput,
   Department,
@@ -42,7 +46,23 @@ export interface PatientAppApi {
     reason: string;
   }): Promise<Appointment>;
   queue(params: { patientId: number }): Promise<QueueStatus>;
+  /* ── Tài khoản: ghi danh và đăng nhập bằng số định danh ── */
+  ghiDanh(input: GhiDanhInput): Promise<GhiDanhResponse>;
+  dangNhap(input: DangNhapInput): Promise<{ token: string }>;
+  doiMatKhau(input: { matKhauCu: string; matKhauMoi: string }): Promise<{
+    soPhienDaThuHoi: number;
+  }>;
+
   visits(params: { patientId: number }): Promise<VisitSummary[]>;
+  /**
+   * Chi tiết MỘT lượt khám: chẩn đoán, đơn thuốc có tên và liều, kết quả xét
+   * nghiệm, bảng kê. Xem khối chú thích ở `types.d.ts › ChiTietLuotKham` để
+   * biết vì sao ràng buộc "không nội dung lâm sàng" được đảo.
+   */
+  visitDetail(params: {
+    id: number;
+    patientId: number;
+  }): Promise<ChiTietLuotKham>;
   prescriptions(params: { patientId: number }): Promise<PrescriptionSummary[]>;
   invoices(params: { patientId: number }): Promise<InvoiceSummary[]>;
   invoiceQr(id: number): Promise<VietQrPayload>;
@@ -162,6 +182,23 @@ export function createHttpApi(
 
     queue: ({ patientId }) =>
       call("/queue", { query: { patient_id: patientId } }),
+
+    /*
+     * BA TUYẾN TÀI KHOẢN đi `anonymous: true` — hai tuyến đầu là CỬA VÀO, và
+     * một cửa vào đòi phiên thì không ai vào được. `doiMatKhau` thì cần phiên,
+     * nên nó KHÔNG anonymous.
+     */
+    ghiDanh: (input) =>
+      call("/ghi-danh", { method: "POST", body: input, anonymous: true }),
+    dangNhap: (input) =>
+      call("/dang-nhap", { method: "POST", body: input, anonymous: true }),
+    doiMatKhau: (input) =>
+      call("/doi-mat-khau", { method: "POST", body: input }),
+
+    visitDetail: ({ id, patientId }) =>
+      call<ChiTietLuotKham>(`/visits/${id}`, {
+        query: { patient_id: patientId },
+      }),
 
     visits: async ({ patientId }) =>
       unwrap(

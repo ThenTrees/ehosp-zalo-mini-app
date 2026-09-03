@@ -20,10 +20,17 @@ import {
   customTitleState,
   departmentNameState,
   prescriptionsState,
+  visitDetailState,
   visitsState,
 } from "@/state";
 import { formatIsoDateLong } from "@/utils/format";
 import PrescriptionCard from "./prescription-card";
+import {
+  BangKeSection,
+  ChanDoanSection,
+  DonThuocSection,
+  XetNghiemSection,
+} from "./clinical-sections";
 import type { VisitSummary } from "@/types";
 
 /**
@@ -45,15 +52,20 @@ export default function RecordDetailPage() {
   return <Body visitId={Number(visitId)} patientId={patientId} />;
 }
 
-function Body({
-  visitId,
-  patientId,
-}: {
-  visitId: number;
-  patientId: number;
-}) {
+function Body({ visitId, patientId }: { visitId: number; patientId: number }) {
   const visits = useAtomValue(visitsState(patientId));
   const prescriptions = useAtomValue(prescriptionsState(patientId));
+  /*
+   * Đọc theo `visitId` TRÊN URL, không theo `visit.id` đã lọc — hook không đặt
+   * sau một điều kiện được, mà `visit` thì chỉ tính ra ở dưới. Nghĩa là gõ tay
+   * một id không thuộc mình VẪN gửi một lời gọi đi.
+   *
+   * Điều đó không sao, và chỗ chốt nằm đúng chỗ nó phải nằm: máy chủ lọc
+   * `patient_id` ngay trong câu SQL của `chiTietLuotKham()` và trả 404. Nhánh
+   * `!visit` bên dưới chỉ là phép lịch sự phía máy khách, KHÔNG phải chốt an
+   * ninh — đừng ai gỡ chốt máy chủ vì thấy nó ở đây.
+   */
+  const chiTiet = useAtomValue(visitDetailState({ id: visitId, patientId }));
   const departmentName = useAtomValue(departmentNameState);
   const setTitle = useSetAtom(customTitleState);
 
@@ -77,11 +89,25 @@ function Body({
     );
   }
 
-  const ofThisVisit = prescriptions.filter((prescription) => prescription.visitId === visit.id);
+  const ofThisVisit = prescriptions.filter(
+    (prescription) => prescription.visitId === visit.id,
+  );
 
   return (
     <div className="space-y-6 p-4">
-      <VisitCard visit={visit} departmentName={departmentName(visit.departmentId)} />
+      <VisitCard
+        visit={visit}
+        departmentName={departmentName(visit.departmentId)}
+      />
+
+      {chiTiet ? (
+        <>
+          <ChanDoanSection d={chiTiet} />
+          <DonThuocSection d={chiTiet} />
+          <XetNghiemSection d={chiTiet} />
+          <BangKeSection d={chiTiet} />
+        </>
+      ) : null}
 
       <div className="space-y-3">
         <SectionHeader title="Đơn thuốc của lần khám này" />
@@ -92,7 +118,12 @@ function Body({
             </p>
           </Card>
         ) : (
-          ofThisVisit.map((prescription) => <PrescriptionCard key={prescription.id} prescription={prescription} />)
+          ofThisVisit.map((prescription) => (
+            <PrescriptionCard
+              key={prescription.id}
+              prescription={prescription}
+            />
+          ))
         )}
       </div>
 

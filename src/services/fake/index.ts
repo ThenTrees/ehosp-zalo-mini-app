@@ -61,14 +61,93 @@ export function createFakeApi(): PatientAppApi {
 
   const findAppointment = (id: number, patientId: number) => {
     assertScope(patientId);
-    const appointment = appointments.find((h) => h.id === id && h.patientId === patientId);
+    const appointment = appointments.find(
+      (h) => h.id === id && h.patientId === patientId,
+    );
     if (!appointment) {
       throw new Error("Không tìm thấy lịch hẹn.");
     }
     return appointment;
   };
 
+  /*
+   * Tầng giả phải cài ĐỦ interface, kể cả những tuyến demo không dùng tới —
+   * TypeScript bắt đúng chỗ này, và đó là điều mong muốn: một tuyến có ở bản
+   * thật mà thiếu ở bản giả nghĩa là màn hình nào đó chỉ chạy được một bên.
+   */
   return {
+    ghiDanh: async (input) => {
+      if (input.soDinhDanh.replace(/\D/g, "").length !== 12) {
+        throw new Error("Số định danh cá nhân phải gồm 12 chữ số.");
+      }
+      await delay();
+      return {
+        token: "phien-gia-sau-ghi-danh",
+        patientId: PROFILES[0].patientId,
+        fullName: PROFILES[0].fullName,
+      };
+    },
+    dangNhap: async () => {
+      await delay();
+      return { token: "phien-gia-sau-dang-nhap" };
+    },
+    doiMatKhau: async () => {
+      await delay();
+      return { soPhienDaThuHoi: 0 };
+    },
+    visitDetail: async ({ id }) => {
+      await delay();
+      return {
+        visitId: id,
+        visitCode: `VK${id}`,
+        visitDate: "2026-08-20",
+        status: "DONE",
+        departmentName: "Khoa Nội tổng hợp",
+        chanDoan: [{ ma: "J20", ten: "Viêm phế quản cấp", chinh: true }],
+        donThuoc: [
+          {
+            code: `DT${id}`,
+            issuedDate: "2026-08-20",
+            status: "DISPENSED",
+            thuoc: [
+              {
+                ten: "Paracetamol",
+                tenThuongMai: null,
+                hamLuong: "500mg",
+                duongDung: "Uống",
+                soLuong: 10,
+                donVi: "Viên",
+                lieu: "2 viên/ngày",
+                soLan: "Sáng 1, Tối 1",
+                soNgay: 5,
+                loiDan: "Uống sau ăn",
+              },
+            ],
+          },
+        ],
+        xetNghiem: [
+          {
+            accessionNo: `XN${id}`,
+            serviceName: "Công thức máu",
+            ketQuaLuc: "2026-08-20T09:12:00.000Z",
+            chiSo: [
+              {
+                ma: "HGB",
+                ten: "Huyết sắc tố",
+                tri: "11.2",
+                donVi: "g/dL",
+                thapNhat: 12,
+                caoNhat: 16,
+                khoangChu: null,
+                co: "L",
+                ghiChu: null,
+              },
+            ],
+          },
+        ],
+        bangKe: null,
+      };
+    },
     async link(input) {
       await delay();
       if (!input.birthdate) {
@@ -112,7 +191,8 @@ export function createFakeApi(): PatientAppApi {
       assertScope(input.patientId);
 
       const open = appointments.filter(
-        (h) => h.patientId === input.patientId && OPEN_STATUSES.includes(h.status),
+        (h) =>
+          h.patientId === input.patientId && OPEN_STATUSES.includes(h.status),
       ).length;
       if (open >= 2) {
         throw new Error("Hồ sơ đã có tối đa 2 lịch hẹn đang mở.");
@@ -206,7 +286,9 @@ export function createFakeApi(): PatientAppApi {
     async prescriptions({ patientId }) {
       await delay();
       assertScope(patientId);
-      return (PRESCRIPTIONS[patientId] ?? []).map((prescription) => ({ ...prescription }));
+      return (PRESCRIPTIONS[patientId] ?? []).map((prescription) => ({
+        ...prescription,
+      }));
     },
 
     async invoices({ patientId }) {

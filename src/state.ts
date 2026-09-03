@@ -4,6 +4,7 @@ import { api, setSessionToken } from "@/services";
 import { ApiError } from "@/services/http";
 import { clearSession, loadSession, saveSession } from "@/services/session";
 import type {
+  ChiTietLuotKham,
   Appointment,
   PatientProfile,
   PrescriptionSummary,
@@ -249,6 +250,27 @@ export const visitsState = atomFamily((patientId: number | null) =>
     async (): Promise<VisitSummary[]> =>
       patientId === null ? [] : nuot401([], () => api.visits({ patientId })),
   ),
+);
+
+/**
+ * Chi tiết một lượt khám — bốn nhóm dữ liệu lâm sàng.
+ *
+ * Khoá theo CẢ `visitId` và `patientId`, cùng lý do đã ghi cho
+ * `appointmentByIdState`: máy chủ đối chiếu `patient_id` ở mọi tuyến đọc, nên
+ * cùng một `visitId` dưới hai hồ sơ khác nhau là hai câu hỏi khác nhau — và
+ * chuyển hồ sơ người thân không được thấy dữ liệu của hồ sơ trước.
+ *
+ * KHÔNG nuốt lỗi thành giá trị rỗng: một màn bệnh án trắng trơn trông y hệt
+ * "lượt khám này không có gì", mà hai chuyện ấy khác nhau hoàn toàn. `nuot401`
+ * chỉ nuốt 401; mọi mã khác nổi lên cho `RouteError` của route con bắt.
+ */
+export const visitDetailState = atomFamily(
+  ({ id, patientId }: { id: number; patientId: number | null }) =>
+    atom(
+      async (): Promise<ChiTietLuotKham | null> =>
+        patientId === null ? null : api.visitDetail({ id, patientId }),
+    ),
+  (a, b) => a.id === b.id && a.patientId === b.patientId,
 );
 
 export const prescriptionsState = atomFamily((patientId: number | null) =>
