@@ -109,36 +109,21 @@ function Body({ visitId, patientId }: { visitId: number; patientId: number }) {
         </>
       ) : null}
 
-      <div className="space-y-3">
-        <SectionHeader title="Đơn thuốc của lần khám này" />
-        {ofThisVisit.length === 0 ? (
-          <Card>
-            <p className="text-sm text-ink-muted">
-              Lần khám này không có đơn thuốc nào.
-            </p>
-          </Card>
-        ) : (
-          ofThisVisit.map((prescription) => (
-            <PrescriptionCard
-              key={prescription.id}
-              prescription={prescription}
-            />
-          ))
-        )}
-      </div>
+      {/*
+        HAI KHỐI ĐÃ GỠ Ở ĐÂY, ngày 2026-09-03:
 
-      <Card className="flex gap-3">
-        <InfoIcon
-          width={20}
-          height={20}
-          className="mt-0.5 shrink-0 text-primary-ink"
-        />
-        <p className="text-sm text-ink-muted">
-          Chẩn đoán, kết quả xét nghiệm và tên thuốc của lần khám này xem tại Sổ
-          sức khoẻ điện tử trên VNeID, hoặc hỏi tại quầy và đọc mã lượt khám ở
-          trên.
-        </p>
-      </Card>
+        · "Đơn thuốc của lần khám này" dựng từ `PrescriptionSummary` — nó chỉ có
+          mã đơn, ngày kê và trạng thái phát. `DonThuocSection` bên trên nay bày
+          đúng những đơn ấy KÈM tên thuốc, hàm lượng, liều và lời dặn. Giữ cả
+          hai là in hai lần cùng một đơn, lần sau nghèo hơn lần trước.
+
+        · Dải "chẩn đoán, kết quả xét nghiệm và tên thuốc xem tại VNeID" — câu ấy
+          đứng NGAY DƯỚI chính chẩn đoán, kết quả và tên thuốc mà nó bảo là không
+          có. Nó đúng cho tới hôm nay và sai kể từ hôm nay.
+
+        Bản có giá trị PHÁP LÝ vẫn ở VNeID, và câu ấy nay nằm một lần duy nhất ở
+        cuối màn Lịch sử khám — nơi nó còn đúng.
+      */}
     </div>
   );
 }

@@ -124,7 +124,9 @@ function PrescriptionList({ patientId }: { patientId: number }) {
           onClick={
             visits.some((visit) => visit.id === prescription.visitId)
               ? () =>
-                  navigate(`/records/${prescription.visitId}`, { viewTransition: true })
+                  navigate(`/records/${prescription.visitId}`, {
+                    viewTransition: true,
+                  })
               : undefined
           }
         />
@@ -149,10 +151,16 @@ function ClinicalNotice() {
           height={20}
           className="mt-0.5 shrink-0 text-primary-ink"
         />
+        {/*
+          Dải chữ cũ ở đây nói "mini app chỉ hiển thị trạng thái… chẩn đoán, kết
+          quả xét nghiệm và tên thuốc xem tại VNeID". Câu ấy ĐÚNG cho tới
+          2026-09-03 và SAI kể từ hôm ấy — chạm vào một lần khám là thấy đủ bốn
+          thứ. Để lại là dạy người bệnh đừng bấm vào thứ vừa được làm ra cho họ.
+        */}
         <p className="text-sm text-ink-muted">
-          Mini app chỉ hiển thị trạng thái các lần khám và đơn thuốc. Chẩn đoán,
-          kết quả xét nghiệm và tên thuốc cụ thể xem tại Sổ sức khoẻ điện tử
-          trên VNeID, hoặc hỏi trực tiếp tại quầy của phòng khám.
+          Chạm vào một lần khám để xem chẩn đoán, đơn thuốc, kết quả xét nghiệm
+          và bảng kê chi phí của lần đó. Bản có giá trị pháp lý nằm ở Sổ sức
+          khoẻ điện tử trên VNeID.
         </p>
       </Card>
     </div>
