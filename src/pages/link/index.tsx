@@ -1,10 +1,11 @@
 import { ReactNode, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useSetAtom } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
 import toast from "react-hot-toast";
 import { api } from "@/services";
 import { getUserAccessToken, getPhoneToken } from "@/services/phone";
-import { applyLinkState } from "@/state";
+import { applyLinkState, profilesState } from "@/state";
+import { hoSoVuaLienKet } from "@/utils/link-target";
 import { Button } from "@/components/button";
 import { AlertCircleIcon, ShieldIcon } from "@/components/icons";
 
@@ -13,6 +14,13 @@ type Step = "BAT_DAU" | "BIRTHDATE" | "INSURANCE_LAST4";
 export default function LinkPage() {
   const navigate = useNavigate();
   const applyLink = useSetAtom(applyLinkState);
+  /*
+   * Danh sách hồ sơ TRƯỚC lần liên kết này — thứ duy nhất cho biết hồ sơ nào
+   * trong `result.profiles` là hồ sơ vừa thêm (xem `hoSoVuaLienKet`). Với người
+   * chưa liên kết bao giờ, `profilesState` đã nuốt 401 và trả về mảng rỗng, nên
+   * đọc ở đây không tốn thêm lời gọi nào ngoài cái Header vẫn gọi sẵn.
+   */
+  const hoSoDaCo = useAtomValue(profilesState);
   const [step, setStep] = useState<Step>("BAT_DAU");
   const [birthdate, setBirthdate] = useState("");
   const [last4, setLast4] = useState("");
@@ -58,11 +66,19 @@ export default function LinkPage() {
         return;
       }
 
+      // KHÔNG dùng `result.profiles[0]`: máy chủ sắp danh sách tăng dần theo
+      // `linked_at`, nên phần tử đầu là hồ sơ CŨ NHẤT chứ không phải hồ sơ vừa
+      // liên kết. Nó cũng ném `TypeError` khi mảng rỗng.
+      const vuaLienKet = hoSoVuaLienKet(hoSoDaCo, result.profiles);
       await applyLink({
         token: result.token,
-        patientId: result.profiles[0].patientId,
+        patientId: vuaLienKet?.patientId ?? null,
       });
-      toast.success("Liên kết tài khoản thành công.");
+      toast.success(
+        vuaLienKet
+          ? `Đã liên kết hồ sơ ${vuaLienKet.fullName}.`
+          : "Liên kết tài khoản thành công.",
+      );
       navigate("/", { viewTransition: true });
     } catch (error) {
       setError(
@@ -74,8 +90,6 @@ export default function LinkPage() {
       setSubmitting(false);
     }
   }
-
-
 
   return (
     <div className="space-y-6 p-4">
