@@ -1,10 +1,12 @@
+import { ReactNode, Suspense } from "react";
 import { useAtomValue } from "jotai";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/button";
+import SilentBoundary from "@/components/silent-boundary";
 import {
+  AlertCircleIcon,
   CalendarPlusIcon,
   ClipboardIcon,
-  ReceiptIcon,
   ShieldIcon,
   TicketIcon,
 } from "@/components/icons";
@@ -20,98 +22,134 @@ import StatusCard from "./status-card";
 import {
   activePatientIdState,
   appointmentsState,
-  invoicesState,
   profilesState,
 } from "@/state";
-import { formatPrice, todayIso } from "@/utils/format";
+import { todayIso } from "@/utils/format";
 
+/*
+ * KHÔNG có ô "Hoá đơn". `GET /patient-app/invoices` đã bị rút khỏi `emr-api`
+ * (29/08/2026, mô-đun thanh toán theo dịch vụ tài chính đi). Một ô thao tác
+ * nhanh dẫn tới màn hình không có dữ liệu là lời hứa suông; ô ấy quay lại cùng
+ * lúc với tuyến.
+ */
 const QUICK_ACTIONS: QuickAction[] = [
   { icon: CalendarPlusIcon, label: "Đặt lịch khám", to: "/booking" },
   { icon: TicketIcon, label: "Số thứ tự", to: "/queue" },
   { icon: ClipboardIcon, label: "Lịch sử khám", to: "/records" },
-  { icon: ReceiptIcon, label: "Hoá đơn", to: "/invoices" },
 ];
 
 export default function HomePage() {
-  const navigate = useNavigate();
   const profiles = useAtomValue(profilesState);
-  const patientId = useAtomValue(activePatientIdState);
-  const appointments = useAtomValue(appointmentsState(patientId));
-  const invoices = useAtomValue(invoicesState(patientId));
 
   if (profiles.length === 0) {
     return (
       <EmptyState
         icon={ShieldIcon}
         title="Chào mừng bạn"
-        hint="Liên kết tài khoản Zalo với hồ sơ tại phòng khám để đặt lịch khám, xem số thứ tự và hoá đơn viện phí."
+        hint="Liên kết tài khoản Zalo với hồ sơ tại phòng khám để đặt lịch khám và xem số thứ tự."
         actionLabel="Liên kết hồ sơ"
         actionTo="/link"
       />
     );
   }
 
-  const today = todayIso();
-  const upcoming = appointments
-    .filter((appointment) => appointment.status === "Scheduled" && appointment.apptDate >= today)
-    .sort((a, b) => a.apptDate.localeCompare(b.apptDate));
-
-  const unpaid = invoices.filter((invoice) => !invoice.paid && invoice.amountDue > 0);
-  const totalUnpaid = unpaid.reduce((sum, invoice) => sum + invoice.amountDue, 0);
-
   return (
     <div className="space-y-6 p-4">
-      <StatusCard />
+      <Khoi loi="Không xem được tình trạng khám hôm nay.">
+        <StatusCard />
+      </Khoi>
 
       <QuickActions actions={QUICK_ACTIONS} />
 
-      {unpaid.length > 0 && (
-        <Card accent="error" className="pl-5">
-          <div className="flex items-center gap-3">
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm text-ink-muted">
-                {unpaid.length} hoá đơn chưa thanh toán
-              </span>
-              <span className="mt-0.5 block text-xl font-bold text-error">
-                {formatPrice(totalUnpaid)}
-              </span>
-            </span>
-            <Button
-              variant="secondary"
-              fullWidth={false}
-              className="px-4"
-              onClick={() => navigate("/invoices", { viewTransition: true })}
-            >
-              Xem
-            </Button>
-          </div>
-        </Card>
-      )}
+      <Khoi loi="Không tải được lịch khám sắp tới.">
+        <LichSapToi />
+      </Khoi>
+    </div>
+  );
+}
 
-      <div className="space-y-3">
-        <SectionHeader
-          title="Lịch khám sắp tới"
-          moreTo={upcoming.length > 0 ? "/appointments" : undefined}
+/**
+ * Một thẻ của Trang chủ, có vách ngăn riêng.
+ *
+ * Ngày 03/09/2026 Trang chủ đọc `invoicesState` không điều kiện; tuyến
+ * `/invoices` đã bị rút, `ApiError` nổi lên khỏi atom trong lúc render, và
+ * `ErrorBoundary` ở route gốc thay luôn cả `<Layout/>` — mất Header, mất thanh
+ * tab, mọi người bệnh đã liên kết đều thấy 404 toàn màn hình dù bảy tuyến còn
+ * lại vẫn chạy tốt.
+ *
+ * Vách ngăn này là bài học đó viết thành mã: một tuyến hỏng chỉ được lấy đi
+ * MỘT thẻ. `router.tsx` gắn thêm `ErrorBoundary` cho từng route con để lớp
+ * ngoài cũng có cùng tính chất.
+ */
+function Khoi({ children, loi }: { children: ReactNode; loi: string }) {
+  return (
+    <SilentBoundary fallback={<TheLoi>{loi}</TheLoi>}>
+      <Suspense
+        fallback={<div className="h-28 animate-pulse rounded-md bg-white" />}
+      >
+        {children}
+      </Suspense>
+    </SilentBoundary>
+  );
+}
+
+function TheLoi({ children }: { children: ReactNode }) {
+  return (
+    <Card>
+      <div className="flex gap-3">
+        <AlertCircleIcon
+          width={20}
+          height={20}
+          className="mt-0.5 shrink-0 text-ink-muted"
         />
-        {upcoming.length === 0 ? (
-          <Card>
-            <p className="text-sm text-ink-muted">
-              Bạn chưa có lịch hẹn nào sắp tới.
-            </p>
-            <Button
-              variant="secondary"
-              className="mt-3"
-              onClick={() => navigate("/booking", { viewTransition: true })}
-            >
-              Đặt lịch khám
-            </Button>
-          </Card>
-        ) : (
-          upcoming
-            .slice(0, 3)
-            .map((appointment) => <AppointmentCard key={appointment.id} appointment={appointment} />)
-        )}
+        <p className="text-sm text-ink-muted">
+          {children} Các phần còn lại của ứng dụng vẫn dùng được; mở lại màn
+          hình sau ít phút.
+        </p>
       </div>
+    </Card>
+  );
+}
+
+function LichSapToi() {
+  const navigate = useNavigate();
+  const patientId = useAtomValue(activePatientIdState);
+  const appointments = useAtomValue(appointmentsState(patientId));
+
+  const today = todayIso();
+  const upcoming = appointments
+    .filter(
+      (appointment) =>
+        appointment.status === "Scheduled" && appointment.apptDate >= today,
+    )
+    .sort((a, b) => a.apptDate.localeCompare(b.apptDate));
+
+  return (
+    <div className="space-y-3">
+      <SectionHeader
+        title="Lịch khám sắp tới"
+        moreTo={upcoming.length > 0 ? "/appointments" : undefined}
+      />
+      {upcoming.length === 0 ? (
+        <Card>
+          <p className="text-sm text-ink-muted">
+            Bạn chưa có lịch hẹn nào sắp tới.
+          </p>
+          <Button
+            variant="secondary"
+            className="mt-3"
+            onClick={() => navigate("/booking", { viewTransition: true })}
+          >
+            Đặt lịch khám
+          </Button>
+        </Card>
+      ) : (
+        upcoming
+          .slice(0, 3)
+          .map((appointment) => (
+            <AppointmentCard key={appointment.id} appointment={appointment} />
+          ))
+      )}
     </div>
   );
 }

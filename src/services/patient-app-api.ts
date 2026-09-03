@@ -177,8 +177,20 @@ export function createHttpApi(
         }),
       ),
 
-    // `/invoices` trả mảng trần — `boc()` vẫn chạy đúng, giữ lại để một lần đổi
-    // khuôn ở máy chủ không làm trống màn hình hoá đơn.
+    /*
+     * ⚠ HAI TUYẾN DƯỚI ĐÂY ĐANG BỊ RÚT Ở MÁY CHỦ — KHÔNG MÀN HÌNH NÀO ĐƯỢC GỌI.
+     *
+     * `emr-api` bỏ `GET /patient-app/invoices` và `GET /invoices/:id/qr` ngày
+     * 29/08/2026: chúng gọi `modules/payment/`, mô-đun đã đi theo dịch vụ tài
+     * chính cùng mười tám bảng tiền. Gọi vào là nhận 404 của bộ xử lý tập trung
+     * — đúng thứ đã hạ cả ứng dụng ngày 03/09/2026 khi Trang chủ còn đọc
+     * `invoicesState`.
+     *
+     * Giữ lại hai hàm này vì hợp đồng §6 không đổi và test dưới
+     * `__tests__/patient-app-api.test.ts` vẫn khoá đúng hình dạng yêu cầu, nên
+     * lúc dịch vụ tài chính mở cửa nội bộ cho tự phục vụ thì chỉ cần dựng lại
+     * màn hình. `/invoices` trả mảng trần — `unwrap()` đã chịu được cả hai khuôn.
+     */
     invoices: async ({ patientId }) =>
       unwrap(
         await call<InvoiceSummary[]>("/invoices", {
