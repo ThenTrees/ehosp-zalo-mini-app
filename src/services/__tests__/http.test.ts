@@ -9,7 +9,7 @@ function fakeFetch(status: number, payload: unknown) {
       new Response(JSON.stringify(payload), {
         status,
         headers: { "Content-Type": "application/json" },
-      })
+      }),
   ) as unknown as typeof fetch;
 }
 
@@ -29,10 +29,10 @@ describe("buildUrl", () => {
 
   it("từ chối đưa bí mật vào query — đây là tiêu chí nghiệm thu của spec §6.2", () => {
     expect(() => buildUrl(BASE, "/redeem", { code: "HK260822123" })).toThrow(
-      /không được nằm trong URL/
+      /không được nằm trong URL/,
     );
     expect(() => buildUrl(BASE, "/queue", { token: "abc" })).toThrow(
-      /không được nằm trong URL/
+      /không được nằm trong URL/,
     );
   });
 });
@@ -116,8 +116,16 @@ describe("request", () => {
   it("ném ApiError kèm thông báo của máy chủ khi lỗi", async () => {
     const spy = fakeFetch(429, { error: "Bạn đã thử quá nhiều lần." });
     await expect(
-      request({ baseUrl: BASE, path: "/redeem", method: "POST", fetchImpl: spy })
-    ).rejects.toMatchObject({ status: 429, message: "Bạn đã thử quá nhiều lần." });
+      request({
+        baseUrl: BASE,
+        path: "/redeem",
+        method: "POST",
+        fetchImpl: spy,
+      }),
+    ).rejects.toMatchObject({
+      status: 429,
+      message: "Bạn đã thử quá nhiều lần.",
+    });
   });
 
   it("giữ lại `detail` của máy chủ để chẩn đoán, không đưa vào thông báo", async () => {
@@ -126,7 +134,12 @@ describe("request", () => {
       detail: "Duplicate entry 'BN0000101'",
     });
     await expect(
-      request({ baseUrl: BASE, path: "/appointments", method: "POST", fetchImpl: spy })
+      request({
+        baseUrl: BASE,
+        path: "/appointments",
+        method: "POST",
+        fetchImpl: spy,
+      }),
     ).rejects.toMatchObject({
       status: 409,
       message: "Dữ liệu đã tồn tại",
@@ -137,16 +150,73 @@ describe("request", () => {
   it("lỗi thiếu trường `error` vẫn có thông báo tiếng Việt dùng được", async () => {
     const spy = fakeFetch(500, {});
     await expect(
-      request({ baseUrl: BASE, path: "/me", fetchImpl: spy })
+      request({ baseUrl: BASE, path: "/me", fetchImpl: spy }),
     ).rejects.toThrow(/Đã có lỗi xảy ra/);
+  });
+
+  /*
+   * `POST /unlink` là tuyến DUY NHẤT trong hợp đồng trả `204 No Content`, và
+   * `Response.json()` trên thân rỗng ném `SyntaxError`. Trước 03/09/2026
+   * `request()` gọi `.json()` vô điều kiện TRƯỚC khi xét `response.ok`, nên một
+   * lần huỷ liên kết THÀNH CÔNG trở thành `ApiError(204, "Không kết nối được
+   * máy chủ")` — máy chủ đã thu hồi liên kết thật, còn máy khách bỏ dở cả bốn
+   * bước dọn phiên và lệch trạng thái ấy sống qua lần mở app sau.
+   */
+  it("204 thân rỗng là thành công, không phải lỗi mạng", async () => {
+    const spy = vi.fn(
+      async () => new Response(null, { status: 204 }),
+    ) as unknown as typeof fetch;
+
+    await expect(
+      request({
+        baseUrl: BASE,
+        path: "/unlink",
+        method: "POST",
+        fetchImpl: spy,
+      }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("thân rỗng kèm mã lỗi vẫn thành ApiError đúng mã", async () => {
+    const spy = vi.fn(
+      async () => new Response(null, { status: 503 }),
+    ) as unknown as typeof fetch;
+
+    await expect(
+      request({
+        baseUrl: BASE,
+        path: "/unlink",
+        method: "POST",
+        fetchImpl: spy,
+      }),
+    ).rejects.toMatchObject({ status: 503 });
+  });
+
+  it("content-length: 0 cũng được coi là thân rỗng", async () => {
+    const spy = vi.fn(
+      async () =>
+        new Response("", {
+          status: 200,
+          headers: { "content-length": "0" },
+        }),
+    ) as unknown as typeof fetch;
+
+    await expect(
+      request({
+        baseUrl: BASE,
+        path: "/unlink",
+        method: "POST",
+        fetchImpl: spy,
+      }),
+    ).resolves.toBeUndefined();
   });
 
   it("ném ApiError với thông báo tiếng Việt khi máy chủ không trả JSON", async () => {
     const spy = vi.fn(
-      async () => new Response("<html>502</html>", { status: 502 })
+      async () => new Response("<html>502</html>", { status: 502 }),
     ) as unknown as typeof fetch;
     await expect(
-      request({ baseUrl: BASE, path: "/me", fetchImpl: spy })
+      request({ baseUrl: BASE, path: "/me", fetchImpl: spy }),
     ).rejects.toThrow(/Không kết nối được máy chủ/);
   });
 });

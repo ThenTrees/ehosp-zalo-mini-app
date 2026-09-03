@@ -54,7 +54,7 @@ export class ApiError extends Error {
   constructor(
     public readonly status: number,
     message: string,
-    public readonly detail?: string
+    public readonly detail?: string,
   ) {
     super(message);
     this.name = "ApiError";
@@ -76,7 +76,7 @@ const FORBIDDEN_QUERY_KEYS = [
 export function buildUrl(
   baseUrl: string,
   path: string,
-  query?: QueryParams
+  query?: QueryParams,
 ): string {
   const url = `${baseUrl}${path}`;
   if (!query) {
@@ -90,7 +90,7 @@ export function buildUrl(
     }
     if (FORBIDDEN_QUERY_KEYS.includes(key)) {
       throw new Error(
-        `Tham số "${key}" không được nằm trong URL — gửi trong thân JSON.`
+        `Tham số "${key}" không được nằm trong URL — gửi trong thân JSON.`,
       );
     }
     search.set(key, String(value));
@@ -127,13 +127,40 @@ export async function request<T>(options: RequestOptions): Promise<T> {
     body: body === undefined ? undefined : JSON.stringify(body),
   });
 
+  /*
+   * Thân rỗng là một phản hồi HỢP LỆ, không phải lỗi mạng.
+   *
+   * `POST /unlink` trả `204 No Content` — tuyến duy nhất trong hợp đồng làm
+   * vậy, và đúng hành vi HTTP cho một thao tác không có gì để trả về.
+   * `Response.json()` trên thân rỗng ném `SyntaxError`, rơi vào `catch` bên
+   * dưới và biến một lần huỷ liên kết THÀNH CÔNG thành
+   * `ApiError(204, "Không kết nối được máy chủ")`. Máy chủ đã thu hồi liên kết
+   * thật rồi, còn máy khách thì bỏ dở toàn bộ phần dọn phiên — lệch trạng thái
+   * sống qua cả lần mở app sau (2026-09-03).
+   *
+   * Chặn ở ĐÂY chứ không ở riêng `unlink()`: tuyến 204 thứ hai sẽ không phải
+   * học lại bài này.
+   */
+  if (
+    response.status === 204 ||
+    response.headers.get("content-length") === "0"
+  ) {
+    if (!response.ok) {
+      throw new ApiError(
+        response.status,
+        "Đã có lỗi xảy ra. Vui lòng thử lại.",
+      );
+    }
+    return undefined as T;
+  }
+
   let payload: any = null;
   try {
     payload = await response.json();
   } catch {
     throw new ApiError(
       response.status,
-      "Không kết nối được máy chủ. Vui lòng thử lại."
+      "Không kết nối được máy chủ. Vui lòng thử lại.",
     );
   }
 
@@ -143,7 +170,7 @@ export async function request<T>(options: RequestOptions): Promise<T> {
       typeof payload?.error === "string"
         ? payload.error
         : "Đã có lỗi xảy ra. Vui lòng thử lại.",
-      typeof payload?.detail === "string" ? payload.detail : undefined
+      typeof payload?.detail === "string" ? payload.detail : undefined,
     );
   }
 

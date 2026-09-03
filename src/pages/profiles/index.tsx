@@ -35,6 +35,7 @@ export default function ProfilesPage() {
   const [activeId, setActiveId] = useAtom(activePatientIdState);
   const unlink = useSetAtom(unlinkState);
   const [confirmingUnlink, setConfirmingUnlink] = useState(false);
+  const [unlinking, setUnlinking] = useState(false);
 
   if (profiles.length === 0) {
     return (
@@ -152,16 +153,41 @@ export default function ProfilesPage() {
                 được lịch hẹn và hoá đơn của hồ sơ này cho tới khi liên kết lại.
               </p>
               <div className="flex gap-3">
-                <Button variant="ghost" onClick={() => setConfirmingUnlink(false)}>
+                <Button
+                  variant="ghost"
+                  disabled={unlinking}
+                  onClick={() => setConfirmingUnlink(false)}
+                >
                   Giữ lại
                 </Button>
                 <Button
                   variant="danger"
+                  loading={unlinking}
                   onClick={async () => {
                     if (activeId === null) return;
-                    await unlink(activeId);
-                    setConfirmingUnlink(false);
-                    toast.success("Đã huỷ liên kết hồ sơ.");
+                    /*
+                     * `try/catch` là bắt buộc ở đây, không phải cho đẹp.
+                     * `ErrorBoundary` của react-router KHÔNG bắt lỗi ném trong
+                     * trình xử lý sự kiện, nên bản trước biến một lần huỷ liên
+                     * kết thất bại thành unhandled rejection: khung xác nhận
+                     * đứng im, không toast thành công lẫn thất bại, người dùng
+                     * không biết mình đã bấm hay chưa. Một thao tác KHÔNG HOÀN
+                     * LẠI ĐƯỢC mà hỏng trong im lặng là kiểu hỏng tệ nhất.
+                     */
+                    setUnlinking(true);
+                    try {
+                      await unlink(activeId);
+                      setConfirmingUnlink(false);
+                      toast.success("Đã huỷ liên kết hồ sơ.");
+                    } catch (error) {
+                      toast.error(
+                        error instanceof Error
+                          ? error.message
+                          : "Không huỷ liên kết được. Vui lòng thử lại.",
+                      );
+                    } finally {
+                      setUnlinking(false);
+                    }
                   }}
                 >
                   Huỷ liên kết

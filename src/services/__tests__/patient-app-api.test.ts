@@ -3,13 +3,22 @@ import { createHttpApi } from "@/services/patient-app-api";
 
 const BASE = "https://api.phongkham.vn/api/patient-app";
 
+/**
+ * Nhận cả một `Response` dựng sẵn.
+ *
+ * Bản trước LUÔN dựng `new Response(JSON.stringify(payload), {status:200})`,
+ * nên không ca nào chạm được tới phản hồi thân rỗng — kể cả ca `unlink` bên
+ * dưới, vốn truyền `null` và vì thế gửi đi chuỗi `"null"`, một thân JSON hợp lệ.
+ * Đúng chỗ mù ấy che lỗi 204 suốt từ đầu.
+ */
 function spyFetch(payload: unknown = { ok: true }) {
-  return vi.fn(
-    async () =>
-      new Response(JSON.stringify(payload), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
+  return vi.fn(async () =>
+    payload instanceof Response
+      ? payload.clone()
+      : new Response(JSON.stringify(payload), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
   ) as unknown as typeof fetch;
 }
 
@@ -164,12 +173,14 @@ describe("createHttpApi — hợp đồng §6", () => {
   });
 
   // Tuyến duy nhất nhận camelCase — router đọc `req.body.patientId`.
-  it("unlink gửi patientId camelCase", async () => {
-    const spy = spyFetch(null);
+  // Và tuyến duy nhất trả 204 thân rỗng, nên ca này dựng ĐÚNG phản hồi ấy:
+  // với `new Response("null")` như trước thì lỗi 204 không bao giờ lộ ra.
+  it("unlink gửi patientId camelCase và chịu được 204 thân rỗng", async () => {
+    const spy = spyFetch(new Response(null, { status: 204 }));
     const api = createHttpApi(BASE, () => "abc", spy);
 
-    await api.unlink(42);
-
+    await expect(api.unlink(42)).resolves.toBeUndefined();
+    expect(urlOf(spy)).toBe(`${BASE}/unlink`);
     expect(bodyOf(spy)).toEqual({ patientId: 42 });
   });
 });
