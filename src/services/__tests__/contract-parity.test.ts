@@ -139,17 +139,22 @@ whenServer("đối chiếu với emr-api monthật — hình dạday dữ liệu
     }
   });
 
-  it("/invoices trả mảday, mỗi dòday đúday khuôn InvoiceSummary", async () => {
-    const invoice = await api().invoices({ patientId: PATIENT_ID });
-    expect(Array.isArray(invoice)).toBe(true);
-    for (const h of invoice) {
-      expect(Object.keys(h).sort()).toEqual([
-        "amountDue",
-        "id",
-        "paid",
-        "visitDate",
-      ]);
-    }
+  /*
+   * `/invoices` ĐÃ BỊ RÚT khỏi `emr-api` (03/09/2026, mô-đun thanh toán theo
+   * dịch vụ tài chính đi). Ca thử này trước đây khẳng định tuyến trả về một
+   * mảng `InvoiceSummary`; giữ nguyên như vậy là để sẵn một ca ĐỎ cho lần đầu
+   * tiên ai đó chạy bộ đối chiếu với cụm thật — mà vì cả bộ tự `describe.skip`
+   * khi thiếu biến môi trường, không ai thấy nó đỏ cho tới lúc ấy. Chính hai
+   * lớp che ấy đã giấu sự cố ngày 03/09.
+   *
+   * Nên nó đảo chiều: chốt lại rằng tuyến ĐANG bị rút. Khi dịch vụ tài chính
+   * mở lại `/invoices`, ca này đỏ — và đỏ đúng lúc, đúng chỗ cần dựng lại màn
+   * hình hoá đơn (xem "Tuyến đã rút" trong README).
+   */
+  it("/invoices vẫn đang bị rút — máy chủ trả 404", async () => {
+    await expect(
+      api().invoices({ patientId: PATIENT_ID }),
+    ).rejects.toMatchObject({ status: 404 });
   });
 
   it("/slots trả available: boolean cho cả hai buổi", async () => {
@@ -235,7 +240,10 @@ whenServer("đối chiếu với emr-api monthật — vòday đời lịch hẹ
     expect(cancelled.status).toBe("Cancelled");
 
     // Đọc lại một mình cũday phải ra đúday bản ghi ấy.
-    const reread = await a.appointment({ id: appointment.id, patientId: PATIENT_ID });
+    const reread = await a.appointment({
+      id: appointment.id,
+      patientId: PATIENT_ID,
+    });
     expect(reread.status).toBe("Cancelled");
   });
 });
