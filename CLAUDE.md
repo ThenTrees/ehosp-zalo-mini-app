@@ -95,7 +95,7 @@ Ba ràng buộc đã được biến thành test chạy được: **không bí m
 Ranh giới duy nhất giữa UI và dữ liệu. Trang chỉ đọc atom.
 
 - Danh mục: atom async phẳng (`departmentsState`).
-- **Mọi atom đọc dữ liệu người bệnh là `atomFamily` khoá theo `patientId`** (`appointmentsState`, `queueState`, `visitsState`, `prescriptionsState`, `invoicesState`) — chuyển hồ sơ người thân không được lẫn dữ liệu. `appointmentByIdState` khoá theo **cả** `{ id, patientId }` vì máy chủ đối chiếu `patient_id` ở mọi tuyến đọc.
+- **Mọi atom đọc dữ liệu người bệnh là `atomFamily` khoá theo `patientId`** (`appointmentsState`, `queueState`, `visitsState`, `prescriptionsState`) — chuyển hồ sơ người thân không được lẫn dữ liệu. Mọi atom đi qua `nuot401`: chỉ 401 bị nuốt thành giá trị rỗng, mọi mã lỗi khác nổi lên cho vách ngăn bắt. `appointmentByIdState` khoá theo **cả** `{ id, patientId }` vì máy chủ đối chiếu `patient_id` ở mọi tuyến đọc.
 - Cần làm mới sau khi ghi thì dùng `atomWithRefresh`, gọi setter không tham số.
 - Form nhiều bước: `atomWithReset` (`bookingFormState`).
 - `activePatientIdState` đọc ra `number | null`, ghi vào thì đồng thời lưu xuống kho lưu trữ; `hydrateSessionState` nạp lại lúc `Layout` mount.
@@ -104,23 +104,25 @@ Atom là promise, nên component tiêu thụ phải nằm dưới `Suspense` tro
 
 ### Routing và app shell
 
-`src/router.tsx` là một cây `createBrowserRouter`: một route `Layout` với mọi trang là con, kèm `ErrorBoundary` ở mức route. `getBasePath()` tính basename — production hoặc `?env=TESTING*/DEVELOPMENT` thì thành `/zapps/${window.APP_ID}`.
+`src/router.tsx` là một cây `createBrowserRouter`: một route `Layout` với mọi trang là con. **Mỗi route con có `ErrorBoundary` riêng** (`RouteError`, `src/components/route-error.tsx`); boundary ở route gốc chỉ còn là lưới cuối. Đặt boundary duy nhất ở route gốc từng làm một tuyến bị rút hạ cả `<Layout/>` — mất Header và thanh tab (03/09/2026). `getBasePath()` tính basename — production hoặc `?env=TESTING*/DEVELOPMENT` thì thành `/zapps/${window.APP_ID}`.
 
-Route GĐ1: `/`, `/link`, `/profiles`, `/booking/:step?`, `/appointments`, `/appointments/:id`, `/queue`, `/records`, `/records/:visitId`, `/invoices`, `/invoices/:id/qr`.
+Route GĐ1: `/`, `/link`, `/profiles`, `/booking/:step?`, `/appointments`, `/appointments/:id`, `/queue`, `/records`, `/records/:visitId`, `/invoices`.
+
+`/invoices` chỉ còn một lời báo tĩnh, **không gọi API**, và không nằm trên thanh tab; `/invoices/:id/qr` đã gỡ hẳn. Máy chủ đã rút hai tuyến hoá đơn — xem mục "Tuyến đã rút" trong README.
 
 `:id` là khoá chính, **không bao giờ là mã hẹn** — mã hẹn là thông tin xác thực dạng bearer và không được nằm trong URL.
 
 **Route `handle` điều khiển phần khung.** Đọc bằng `useRouteHandle()` (`src/hooks.ts`):
 
 - **không cờ nào** — Header lời chào ("Xin chào, <tên hồ sơ>") và thanh tab. Chỉ Trang chủ dùng.
-- `tab: true` — Header gọn (tên phòng khám), thanh tab hiện; tên trang do trang tự vẽ bằng `PageHeading`. Dùng cho `/appointments`, `/invoices`, `/profiles`.
+- `tab: true` — Header gọn (tên phòng khám), thanh tab hiện; tên trang do trang tự vẽ bằng `PageHeading`. Dùng cho `/appointments`, `/profiles`.
 - `back: true` — Header hiện nút quay lại + `title`, và thanh tab dưới bị ẩn hoàn toàn.
 - `tab` **+** `back` cùng lúc — thanh tab vẫn hiện, header thêm nút quay lại và bỏ tên phòng khám cho đủ chỗ. `/profiles` dùng tổ hợp này vì người dùng hay tới đó từ lời chào ở Trang chủ. Vì vậy `Footer` kiểm tra `handle.back && !handle.tab`.
 - `title: "custom"` — Header hiện giá trị atom `customTitleState` (đặt lúc mount bởi `src/pages/appointments/detail.tsx` và `src/pages/records/detail.tsx`, khôi phục lúc unmount).
 - `noScroll: true` — `Page` dùng `overflow-hidden` thay `overflow-y-auto`.
 - `scrollRestoration: <px>` — ép một mức cuộn cố định.
 
-Thanh tab có bốn mục (Trang chủ · Lịch hẹn · Hoá đơn · Hồ sơ) trong lưới 5 cột, cột giữa để trống cho nút "+" tròn nổi dẫn tới `/booking`. Số thứ tự không có tab riêng — nó là thẻ trạng thái đầu Trang chủ.
+Thanh tab có ba mục (Trang chủ · Lịch hẹn · Hồ sơ) trong lưới 5 cột: hai mục đầu ở cột 1-2, cột 3 để trống cho nút "+" tròn nổi dẫn tới `/booking`, mục cuối trải cột 4-5 và tự căn giữa. Mục "Hoá đơn" đã gỡ ngày 03/09/2026 vì tuyến bị rút — **một tuyến không tồn tại không được nằm trên thanh điều hướng**, và `src/services/__tests__/dieu-huong.test.ts` canh chừng. Số thứ tự không có tab riêng — nó là thẻ trạng thái đầu Trang chủ.
 
 Lời chào ở Header đọc dữ liệu người bệnh nhưng Header nằm **ngoài** `ErrorBoundary` của route, nên nó phải bọc trong `SilentBoundary` + `Suspense` (`src/components/silent-boundary.tsx`). Không bọc thì một lỗi mạng ở phần trang trí sẽ rơi vào trang 404 và đá người dùng lùi một bước lịch sử.
 

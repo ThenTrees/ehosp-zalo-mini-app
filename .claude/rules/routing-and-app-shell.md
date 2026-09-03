@@ -13,7 +13,7 @@ paths:
 
 # Routing and the app shell
 
-`src/router.tsx` defines a single `createBrowserRouter` tree: one `Layout` route with every page as a child, plus a route-level `ErrorBoundary`. The basename is computed by `getBasePath()` — in production or when `?env=TESTING*/DEVELOPMENT` it becomes `/zapps/${window.APP_ID}`, otherwise `window.BASE_PATH`.
+`src/router.tsx` defines a single `createBrowserRouter` tree: one `Layout` route with every page as a child. **Every child route carries its own `ErrorBoundary`** (`RouteError`, `src/components/route-error.tsx`); the one on the root route is only a last resort. A single boundary on the root route replaces `<Layout/>` itself — that is how one withdrawn API route took down the header and the tab bar on 2026-09-03. The basename is computed by `getBasePath()` — in production or when `?env=TESTING*/DEVELOPMENT` it becomes `/zapps/${window.APP_ID}`, otherwise `window.BASE_PATH`.
 
 `Layout` (`src/components/layout.tsx`) is a fixed `h-screen` column: `Header` / `Page` (the scrollable `<Outlet />` in a `Suspense`) / `Footer` / `Toaster` / `ScrollRestoration`. It also calls `hydrateSessionState` once on mount — that is what restores the saved patient session and the active patient profile when the mini app reopens.
 
@@ -30,8 +30,7 @@ paths:
 | `/queue` | Số thứ tự hôm nay | `back` |
 | `/records` | Lịch sử khám (lượt khám / đơn thuốc, chỉ trạng thái) | `back` |
 | `/records/:visitId` | Chi tiết một lần khám | `back`, `title: "custom"` |
-| `/invoices` | Hoá đơn | `tab` |
-| `/invoices/:id/qr` | Mã thanh toán | `back` |
+| `/invoices` | Hoá đơn — **tạm ngưng**, lời báo tĩnh, không gọi API, không có tab | `back` |
 
 `:id` ở các đường dẫn trên là khoá chính, **không bao giờ là mã hẹn** — mã hẹn là thông tin xác thực dạng bearer và không được nằm trong URL (spec §6.2; `buildUrl` trong `src/services/http.ts` chặn việc đó).
 
@@ -49,7 +48,7 @@ Read it with `useRouteHandle()` (`src/hooks.ts`); the shell components branch on
 
 ## Thanh tab
 
-Bốn mục — Trang chủ · Lịch hẹn · Hoá đơn · Hồ sơ — trong lưới 5 cột, cột giữa để trống cho **nút "+" tròn nổi** dẫn tới `/booking`. Số thứ tự không có tab riêng; nó là thẻ trạng thái đầu Trang chủ (`src/pages/home/status-card.tsx`) và một ô trong lưới thao tác nhanh.
+Ba mục — Trang chủ · Lịch hẹn · Hồ sơ — trong lưới 5 cột: hai mục đầu ở cột 1-2, cột 3 để trống cho **nút "+" tròn nổi** dẫn tới `/booking`, mục cuối trải cột 4-5 và tự căn giữa (bốn tâm điểm rơi đúng 10/30/50/70%). Mục "Hoá đơn" đã gỡ ngày 03/09/2026 cùng lúc tuyến `/patient-app/invoices` bị rút ở máy chủ: **một tuyến không tồn tại không được nằm trên thanh điều hướng**. Số thứ tự không có tab riêng; nó là thẻ trạng thái đầu Trang chủ (`src/pages/home/status-card.tsx`) và một ô trong lưới thao tác nhanh.
 
 ## Header đọc dữ liệu người bệnh
 
