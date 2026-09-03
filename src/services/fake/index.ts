@@ -115,6 +115,7 @@ export function createFakeApi(): PatientAppApi {
             code: `DT${id}`,
             issuedDate: "2026-08-20",
             status: "DISPENSED",
+            taiLieuId: 9002,
             thuoc: [
               {
                 ten: "Paracetamol",

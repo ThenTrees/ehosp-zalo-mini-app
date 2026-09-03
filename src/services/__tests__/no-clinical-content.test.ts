@@ -72,7 +72,7 @@ const ALLOWED_FIELDS: Record<string, string[]> = {
     "soNgay",
     "loiDan",
   ],
-  DonThuocChiTiet: ["code", "issuedDate", "status", "thuoc"],
+  DonThuocChiTiet: ["code", "issuedDate", "status", "thuoc", "taiLieuId"],
   ChiSoXetNghiem: [
     "ma",
     "ten",

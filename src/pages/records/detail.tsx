@@ -104,7 +104,7 @@ function Body({ visitId, patientId }: { visitId: number; patientId: number }) {
       {chiTiet ? (
         <>
           <ChanDoanSection d={chiTiet} />
-          <DonThuocSection d={chiTiet} />
+          <DonThuocSection d={chiTiet} patientId={patientId} />
           <XetNghiemSection d={chiTiet} />
           <BangKeSection d={chiTiet} />
           <TaiLieuSection d={chiTiet} patientId={patientId} />

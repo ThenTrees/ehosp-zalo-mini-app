@@ -65,7 +65,13 @@ export function ChanDoanSection({ d }: { d: ChiTietLuotKham }) {
   );
 }
 
-export function DonThuocSection({ d }: { d: ChiTietLuotKham }) {
+export function DonThuocSection({
+  d,
+  patientId,
+}: {
+  d: ChiTietLuotKham;
+  patientId: number;
+}) {
   if (d.donThuoc.length === 0) return null;
   return (
     <Card>
@@ -73,7 +79,32 @@ export function DonThuocSection({ d }: { d: ChiTietLuotKham }) {
       <div className="flex flex-col gap-4">
         {d.donThuoc.map((don) => (
           <div key={don.code} className="flex flex-col gap-2">
-            <div className="text-xs text-ink-muted">{don.code}</div>
+            {/*
+              NÚT MỞ PDF NẰM NGAY TRÊN KHỐI ĐƠN, không chỉ ở mục "Giấy tờ" cuối
+              trang: người bệnh nhìn thấy tên thuốc thì tìm tờ giấy ở ngay đó.
+
+              Và khi CHƯA CÓ bản ký thì NÓI RA. Trên cụm hôm nay chỉ 72/1894
+              lượt khám có tệp đã đóng băng, nên nhánh `null` là nhánh THƯỜNG —
+              ẩn nút đi im lặng làm người bệnh tưởng chức năng hỏng, đúng chuyện
+              đã xảy ra ngày 2026-09-04.
+            */}
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-xs text-ink-muted">{don.code}</span>
+              {don.taiLieuId ? (
+                <a
+                  href={api.taiLieuUrl({ id: don.taiLieuId, patientId })}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="shrink-0 text-xs font-medium text-primary-ink underline"
+                >
+                  Mở bản PDF đã ký
+                </a>
+              ) : (
+                <span className="shrink-0 text-xs text-ink-muted">
+                  Chưa có bản PDF
+                </span>
+              )}
+            </div>
             {don.thuoc.map((t, i) => (
               <div
                 key={`${don.code}-${i}`}

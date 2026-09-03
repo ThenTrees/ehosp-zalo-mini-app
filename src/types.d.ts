@@ -220,6 +220,12 @@ export interface DonThuocChiTiet {
   issuedDate: string | null;
   status: string;
   thuoc: ThuocDaKe[];
+  /**
+   * Bản PDF đã ký của CHÍNH đơn này. `null` khi đơn chưa đóng băng — và đó là
+   * phần lớn (72/1894 lượt khám có tệp trên cụm hôm nay), nên màn hình phải
+   * NÓI RA khi không có thay vì ẩn nút đi im lặng.
+   */
+  taiLieuId: number | null;
 }
 
 export interface ChiSoXetNghiem {
