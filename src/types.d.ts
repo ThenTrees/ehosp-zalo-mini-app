@@ -166,6 +166,24 @@ export interface CreateAppointmentInput {
  * chỉ rộng ra — và rộng ra đúng những trường đã liệt kê ở đây, không hơn.
  * ═══════════════════════════════════════════════════════════════════════════ */
 
+/**
+ * Sinh hiệu đo tại buồng khám. Từng trị `null` nghĩa là KHÔNG ĐO, khác với 0.
+ *
+ * Máy chủ trả cả khối là `null` khi lượt khám không đo gì — nên màn hình phân
+ * biệt được "chưa đo" với "đo rồi mà mọi trị đều rỗng", hai chuyện khác nhau.
+ */
+export interface SinhHieu {
+  mach: number | null;
+  nhietDo: number | null;
+  huyetApTamThu: number | null;
+  huyetApTamTruong: number | null;
+  nhipTho: number | null;
+  spo2: number | null;
+  chieuCaoCm: number | null;
+  canNangKg: number | null;
+  duongHuyet: number | null;
+}
+
 export interface ChanDoan {
   ma: string;
   ten: string;
@@ -252,6 +270,11 @@ export interface ChiTietLuotKham {
   status: string;
   departmentName: string | null;
   chanDoan: ChanDoan[];
+  /** `null` = lượt khám chưa đo sinh hiệu. */
+  sinhHieu: SinhHieu | null;
+  /** Lời dặn của bác sĩ — viết ĐỂ người bệnh đọc, trước đây chỉ có trên giấy. */
+  loiDan: string | null;
+  ngayTaiKham: string | null;
   donThuoc: DonThuocChiTiet[];
   /** `null` = dịch vụ cận lâm sàng không trả lời được, KHÁC với mảng rỗng. */
   xetNghiem: PhieuXetNghiem[] | null;

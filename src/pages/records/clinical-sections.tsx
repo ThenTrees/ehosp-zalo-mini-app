@@ -1,6 +1,7 @@
 import { Card, SectionHeader } from "@/components/ui";
 import { MoTaiLieu } from "@/components/mo-tai-lieu";
 import { api } from "@/services";
+import { formatIsoDateLong } from "@/utils/format";
 import type { ChiTietLuotKham } from "@/types";
 
 /**
@@ -39,6 +40,96 @@ function KhongLayDuoc({ ten }: { ten: string }) {
       Chưa lấy được {ten}. Dữ liệu vẫn còn trong hồ sơ tại phòng khám — vui lòng
       thử lại sau ít phút.
     </div>
+  );
+}
+
+/**
+ * SINH HIỆU — số đo tại buồng khám, KHÔNG kèm diễn giải.
+ *
+ * ⚠ KHÔNG tô màu, KHÔNG so với khoảng bình thường, KHÔNG viết "hơi cao".
+ * Một con số kèm nhãn "cao" trên điện thoại là một chẩn đoán do phần mềm đưa
+ * ra, mà phần mềm không biết người này đang dùng thuốc gì, vừa leo mấy tầng
+ * cầu thang, hay có bệnh nền nào. Người bệnh đọc "huyết áp CAO" lúc 11 giờ đêm
+ * thì hoặc hoảng, hoặc tự đổi liều — cả hai đều tệ hơn việc không biết.
+ *
+ * Chỗ diễn giải là lời dặn của bác sĩ, ngay khối dưới, do người đã khám viết.
+ *
+ * Trị `null` thì KHÔNG hiện dòng đó: "—" cho một ô không đo trông y hệt một ô
+ * đo được trị rỗng, và người bệnh sẽ hỏi quầy vì sao mạch của mình là gạch ngang.
+ */
+export function SinhHieuSection({ d }: { d: ChiTietLuotKham }) {
+  const s = d.sinhHieu;
+  if (!s) return null;
+
+  const ha =
+    s.huyetApTamThu !== null && s.huyetApTamTruong !== null
+      ? `${s.huyetApTamThu}/${s.huyetApTamTruong}`
+      : s.huyetApTamThu !== null
+        ? String(s.huyetApTamThu)
+        : null;
+
+  const o: { nhan: string; tri: string | null; donVi: string }[] = [
+    { nhan: "Huyết áp", tri: ha, donVi: "mmHg" },
+    { nhan: "Mạch", tri: s.mach === null ? null : String(s.mach), donVi: "lần/phút" },
+    { nhan: "Nhiệt độ", tri: s.nhietDo === null ? null : String(s.nhietDo), donVi: "°C" },
+    { nhan: "SpO₂", tri: s.spo2 === null ? null : String(s.spo2), donVi: "%" },
+    { nhan: "Nhịp thở", tri: s.nhipTho === null ? null : String(s.nhipTho), donVi: "lần/phút" },
+    { nhan: "Cân nặng", tri: s.canNangKg === null ? null : String(s.canNangKg), donVi: "kg" },
+    { nhan: "Chiều cao", tri: s.chieuCaoCm === null ? null : String(s.chieuCaoCm), donVi: "cm" },
+    { nhan: "Đường huyết", tri: s.duongHuyet === null ? null : String(s.duongHuyet), donVi: "mmol/L" },
+  ].filter((x) => x.tri !== null);
+
+  if (o.length === 0) return null;
+
+  return (
+    <Card>
+      <SectionHeader title="Sinh hiệu" />
+      <dl className="grid grid-cols-2 gap-x-3 gap-y-2">
+        {o.map((x) => (
+          <div key={x.nhan} className="flex items-baseline justify-between gap-2">
+            <dt className="text-sm text-ink-muted">{x.nhan}</dt>
+            <dd className="text-base font-semibold tabular-nums text-ink">
+              {x.tri}
+              <span className="ml-1 text-xs font-normal text-ink-muted">
+                {x.donVi}
+              </span>
+            </dd>
+          </div>
+        ))}
+      </dl>
+      <p className="mt-3 text-xs text-ink-muted">
+        Số đo tại buồng khám trong lần khám này. Cần hiểu ý nghĩa các con số,
+        hãy hỏi bác sĩ — đừng tự so với số của người khác.
+      </p>
+    </Card>
+  );
+}
+
+/**
+ * LỜI DẶN CỦA BÁC SĨ + NGÀY TÁI KHÁM.
+ *
+ * Hai thứ này trước đây CHỈ có trên tờ giấy in. Ai mất tờ giấy là mất lời dặn,
+ * và đó là thứ hay mất nhất trong cả tập giấy ra viện.
+ *
+ * Để RIÊNG một khối và đặt TRƯỚC đơn thuốc: nó là thứ người bệnh cần đọc nhất
+ * và cũng là thứ dễ bị cuộn qua nhất.
+ */
+export function LoiDanSection({ d }: { d: ChiTietLuotKham }) {
+  if (!d.loiDan && !d.ngayTaiKham) return null;
+  return (
+    <Card>
+      <SectionHeader title="Lời dặn của bác sĩ" />
+      {d.loiDan ? (
+        <p className="whitespace-pre-line text-sm leading-relaxed text-ink">
+          {d.loiDan}
+        </p>
+      ) : null}
+      {d.ngayTaiKham ? (
+        <p className="mt-3 rounded-md bg-primary-soft px-3 py-2 text-sm font-medium text-primary-ink">
+          Hẹn tái khám: {formatIsoDateLong(d.ngayTaiKham)}
+        </p>
+      ) : null}
+    </Card>
   );
 }
 

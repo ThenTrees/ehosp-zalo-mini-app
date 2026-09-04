@@ -28,6 +28,8 @@ import PrescriptionCard from "./prescription-card";
 import {
   BangKeSection,
   ChanDoanSection,
+  SinhHieuSection,
+  LoiDanSection,
   TaiLieuSection,
   DonThuocSection,
   XetNghiemSection,
@@ -104,6 +106,13 @@ function Body({ visitId, patientId }: { visitId: number; patientId: number }) {
       {chiTiet ? (
         <>
           <ChanDoanSection d={chiTiet} />
+          {/*
+            Sinh hiệu và lời dặn đứng NGAY SAU chẩn đoán, TRƯỚC đơn thuốc: đó là
+            thứ tự người bệnh đọc một tờ ra viện — bị gì, đo được gì, dặn gì,
+            rồi mới tới uống gì.
+          */}
+          <SinhHieuSection d={chiTiet} />
+          <LoiDanSection d={chiTiet} />
           <DonThuocSection d={chiTiet} patientId={patientId} />
           <XetNghiemSection d={chiTiet} />
           <BangKeSection d={chiTiet} />

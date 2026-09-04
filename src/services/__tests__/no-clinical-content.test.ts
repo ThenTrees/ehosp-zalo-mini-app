@@ -92,6 +92,27 @@ const ALLOWED_FIELDS: Record<string, string[]> = {
     "status",
     "departmentName",
     "chanDoan",
+    /*
+     * THÊM 2026-09-05, và ba trường này khai có chủ ý chứ không phải cho xanh:
+     *
+     * · `sinhHieu` — số đo của chính người bệnh trong lần khám của họ. Cùng
+     *   hạng với chẩn đoán và đơn thuốc, thứ đã được quyết cho xem từ 03/09.
+     *   Màn hình hiện SỐ THÔ, không tô màu, không so với khoảng bình thường:
+     *   một nhãn "cao" do phần mềm gắn là một chẩn đoán mà phần mềm không đủ
+     *   dữ kiện để đưa ra.
+     * · `loiDan` — cột `advice`, thứ bác sĩ viết ĐỂ người bệnh đọc. Trước đây
+     *   chỉ có trên tờ giấy in, và đó là tờ hay mất nhất.
+     * · `ngayTaiKham` — cột `recheck_date`.
+     *
+     * KHÔNG lấy ba cột còn lại của cùng bảng `emr_visit_clinical`:
+     * `clinical_symptoms` (ghi chép thô của buồng khám, viết cho đồng nghiệp —
+     * đúng hạng `KHONG_BAO_GIO` ở trên), `diagnosis_provisional` (chẩn đoán SƠ
+     * BỘ; người bệnh đọc nó như kết luận, và một dòng đã bị bỏ sau xét nghiệm
+     * vẫn ở lại trong đầu họ), và `examined_by` (danh tính nhân sự).
+     */
+    "sinhHieu",
+    "loiDan",
+    "ngayTaiKham",
     "donThuoc",
     "xetNghiem",
     "bangKe",

@@ -124,6 +124,27 @@ export function createFakeApi(): PatientAppApi {
         status: "DONE",
         departmentName: "Khoa Nội tổng hợp",
         chanDoan: [{ ma: "J20", ten: "Viêm phế quản cấp", chinh: true }],
+        /*
+         * Cố ý để `nhipTho` và `duongHuyet` là null: màn hình phải BỎ HẲN dòng
+         * không đo, chứ không hiện "—". Bản giả mà trị nào cũng có thì lỗi ấy
+         * không bao giờ lộ ra khi xem demo.
+         */
+        sinhHieu: {
+          mach: 88,
+          nhietDo: 37.8,
+          huyetApTamThu: 126,
+          huyetApTamTruong: 78,
+          nhipTho: null,
+          spo2: 97,
+          chieuCaoCm: 165,
+          canNangKg: 58.5,
+          duongHuyet: null,
+        },
+        loiDan:
+          "Uống thuốc đủ liều, đủ ngày kể cả khi đã đỡ ho.\n" +
+          "Uống nhiều nước ấm, tránh nằm điều hoà dưới 26 độ.\n" +
+          "Sốt trên 39 độ hoặc khó thở thì tới khám lại ngay, không chờ hẹn.",
+        ngayTaiKham: "2026-09-12",
         donThuoc: [
           {
             code: `DT${id}`,
