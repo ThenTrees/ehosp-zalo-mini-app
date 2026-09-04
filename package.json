@@ -20,7 +20,8 @@
     "deploy": "zmp deploy",
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx}\" | cat"
+    "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx}\" | cat",
+    "predeploy": "node scripts/kiem-truoc-deploy.mjs"
   },
   "dependencies": {
     "jotai": "^2.12.1",
@@ -29,7 +30,7 @@
     "react-dom": "^18.3.1",
     "react-hot-toast": "^2.5.2",
     "react-router-dom": "^7.6.1",
-    "zmp-sdk": "latest",
+    "zmp-sdk": "2.53.0",
     "zmp-ui": "^1.11.7"
   },
   "devDependencies": {
@@ -47,6 +48,6 @@
     "typescript": "^5.9.3",
     "vite": "^5.2.13",
     "vitest": "^2.1.9",
-    "zmp-vite-plugin": "latest"
+    "zmp-vite-plugin": "1.1.6"
   }
 }

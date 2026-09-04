@@ -22,16 +22,12 @@ describe("biến môi trường phải vào được bundle", () => {
     expect(viteConfigSource).toContain(
       '"import.meta.env.VITE_USE_FAKE": JSON.stringify',
     );
-    expect(viteConfigSource).toContain(
-      '"import.meta.env.VITE_ZALO_PHONE_GIA": JSON.stringify',
-    );
   });
 
   it("services/index.ts tham chiếu từng biến bằng tên đầy đủ", () => {
     // `define` thay thế theo văn bản, nên chuỗi đầy đủ phải có mặt trong mã.
     expect(indexSource).toContain("import.meta.env.VITE_API_BASE_URL");
     expect(indexSource).toContain("import.meta.env.VITE_USE_FAKE");
-    expect(indexSource).toContain("import.meta.env.VITE_ZALO_PHONE_GIA");
   });
 
   it("services/index.ts KHÔNG truyền cả object import.meta.env", () => {

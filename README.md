@@ -195,7 +195,14 @@ không bao giờ sửa tay.
 1. `npm run login` — cần một lần, sinh `ZMP_TOKEN`.
 2. Đặt `VITE_API_BASE_URL` trỏ tới tên miền HTTPS thật. Giá trị này được **nhúng
    cứng vào bundle lúc build**, nên đổi địa chỉ là phải deploy lại.
-3. Khai tên miền đó trong Mini App Center.
+3. Đặt `CORS_ORIGINS_NGUOI_BENH=https://h5.zdn.vn` trong `.env` của eHosp rồi
+   **tạo lại** container api (`./emr.sh restart api`, không phải `bounce`).
+   Để trống là mini app chết ở bước preflight, ngay màn hình đầu tiên: mọi lời
+   gọi đều mang header `X-Patient-Session` nên đều phải preflight, mà chốt phiên
+   của router bắt cả `OPTIONS`.
+   ⚠ Dùng biến RIÊNG này, đừng dùng `CORS_ORIGINS`: dòng ấy gắn toàn cục kèm
+   `credentials: true`, nên thêm `h5.zdn.vn` vào đó là mở cả API nhân viên cho
+   trang ấy đọc bằng cookie của người đang đăng nhập.
 4. Kiểm `VITE_USE_FAKE=false` — phát hành với `true` là phát hành dữ liệu bệnh
    nhân bịa cho người dùng thật.
 5. `npm run deploy`.
@@ -212,3 +219,15 @@ Webview Zalo **chặn HTTP**, nên back-end bắt buộc phải có HTTPS.
 | Kế hoạch triển khai | `docs/superpowers/plans/` |
 | Thiết kế mô-đun gốc | `eHosp/docs/09-THIET-KE-DICH-VU/12-MOBILE-APP.md` |
 | Hướng dẫn cho Claude Code | `CLAUDE.md` và `.claude/rules/` |
+
+> **Không có bước "khai tên miền trong Mini App Center".** Tài liệu chính thức
+> của Zalo không có cơ chế allowlist tên miền cho việc mini app gọi API riêng;
+> điều kiện thật chỉ là **HTTPS hợp lệ** cộng **header CORS đúng**. Mục "Cấu
+> hình API Domain" tồn tại nhưng thuộc nhóm Open API dành cho Solution Partner
+> và chỉ phục vụ theo dõi/thống kê, không phải cấp phép. Tài liệu này từng ghi
+> ngược, và câu ấy khiến người triển khai đi chờ một thứ không tồn tại.
+>
+> Thứ THẬT SỰ phải xin duyệt ở Mini App Center là **quyền "Sử dụng native
+> storage"** — toàn bộ phiên người bệnh nằm trong đó (`src/services/session.ts`).
+> Chưa được duyệt thì người dùng ngoài nhóm Developer/Admin bị đăng xuất mỗi lần
+> mở app. Cộng với **xác thực chủ sở hữu Mini App**, bắt buộc với mọi mini app.

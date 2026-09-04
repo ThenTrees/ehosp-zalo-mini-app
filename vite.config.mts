@@ -23,11 +23,6 @@ export default ({ mode }: { mode: string }) => {
       ),
       "import.meta.env.VITE_USE_FAKE": JSON.stringify(env.VITE_USE_FAKE ?? ""),
       // Số điện thoại thay cho SDK Zalo khi phát triển — xem
-      // `src/services/config.ts › soDienThoaiGia`. `readRuntimeConfig` bỏ qua
-      // nó ở bản dựng phát hành, nên nhúng vào đây là vô hại.
-      "import.meta.env.VITE_ZALO_PHONE_GIA": JSON.stringify(
-        env.VITE_ZALO_PHONE_GIA ?? "",
-      ),
     },
     build: {
       assetsInlineLimit: 0,

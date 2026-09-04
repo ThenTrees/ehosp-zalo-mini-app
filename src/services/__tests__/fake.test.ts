@@ -3,46 +3,60 @@ import { createFakeApi } from "@/services/fake";
 
 const DATE = "2026-09-01";
 
+/*
+ * MỞ KHOÁ BẰNG ĐƯỜNG ĐANG SỐNG.
+ *
+ * Helper này trước đây gọi `api.link()` — luồng Zalo cũ, không màn hình nào còn
+ * gọi sau khi đăng nhập chuyển sang số định danh + mật khẩu. Hệ quả: 14 bài
+ * dưới đây kiểm một đường đã chết, và vì `link()` là chỗ DUY NHẤT bật cờ
+ * `linked` của tầng giả, chúng còn CHE mất một lỗi thật — bản `VITE_USE_FAKE=true`
+ * đi tới màn hình trống ngay sau khi đăng nhập, mà 103 phép thử vẫn xanh.
+ *
+ * Nay mở khoá bằng `ghiDanh`, đúng thứ ứng dụng thật gọi. Bài nào xanh từ đây
+ * mới nói được điều gì về ứng dụng.
+ */
 async function linkedApi() {
   const api = createFakeApi();
-  const result = await api.link({
-    zaloPhoneToken: "token-gia",
-    zaloAccessToken: "access-gia",
-    birthdate: "1990-05-12",
+  const kq = await api.ghiDanh({
+    soDinhDanh: "079090012345",
+    insuranceLast4: "1234",
+    matKhau: "matkhau-du-dai",
   });
-  if (result.outcome !== "LINKED") {
-    throw new Error("Mong đợi liên kết thành công");
-  }
-  return { api, profiles: result.profiles };
+  const { profiles } = await api.me();
+  if (!profiles.length) throw new Error("Mong đợi có hồ sơ sau khi ghi danh");
+  return { api, profiles };
 }
 
 const morningSlot = (slots: { session: string; available: boolean }[]) =>
   slots.find((s) => s.session === "SANG");
 
-describe("createFakeApi — liên kết", () => {
-  it("hỏi ngày sinh trước khi cho liên kết", async () => {
-    const api = createFakeApi();
-    const result = await api.link({
-      zaloPhoneToken: "token-gia",
-      zaloAccessToken: "access-gia",
-    });
-    expect(result).toEqual({ outcome: "CHALLENGE", need: "BIRTHDATE" });
-  });
-
-  it("từ chối khi ngày sinh sai, không tiết lộ hồ sơ nào tồn tại", async () => {
+describe("createFakeApi — ghi danh", () => {
+  it("đòi số định danh đủ 12 chữ số", async () => {
     const api = createFakeApi();
     await expect(
-      api.link({
-        zaloPhoneToken: "token-gia",
-        zaloAccessToken: "access-gia",
-        birthdate: "1970-01-01",
-      }),
-    ).rejects.toThrow(/Thông tin không khớp/);
+      api.ghiDanh({ soDinhDanh: "0790900", insuranceLast4: "1234",
+                    matKhau: "matkhau-du-dai" }),
+    ).rejects.toThrow(/12 chữ số/);
   });
 
-  it("trả về nhiều hồ sơ cho một tài khoản", async () => {
-    const { profiles } = await linkedApi();
+  /*
+   * BÀI QUAN TRỌNG NHẤT CỦA TỆP, và nó ra đời sau một lỗi thật: ghi danh xong
+   * mà `me()` trả rỗng thì ứng dụng đi thẳng tới màn hình TRỐNG — người bệnh
+   * đăng nhập được rồi không thấy gì, không có thông báo lỗi nào.
+   */
+  it("ghi danh xong thì me() thấy hồ sơ — không phải màn hình trống", async () => {
+    const api = createFakeApi();
+    const kq = await api.ghiDanh({ soDinhDanh: "079090012345",
+      insuranceLast4: "1234", matKhau: "matkhau-du-dai" });
+    const { profiles } = await api.me();
     expect(profiles.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("đăng nhập cũng mở khoá, không riêng ghi danh", async () => {
+    const api = createFakeApi();
+    await api.dangNhap({ soDinhDanh: "079090012345", matKhau: "matkhau-du-dai" });
+    const { profiles } = await api.me();
+    expect(profiles.length).toBeGreaterThanOrEqual(1);
   });
 });
 

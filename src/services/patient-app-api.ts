@@ -8,8 +8,6 @@ import type {
   CreateAppointmentInput,
   Department,
   InvoiceSummary,
-  LinkInput,
-  LinkResponse,
   PatientProfile,
   PrescriptionSummary,
   QueueStatus,
@@ -26,7 +24,6 @@ import type {
  * đổi một biến môi trường.
  */
 export interface PatientAppApi {
-  link(input: LinkInput): Promise<LinkResponse>;
   me(): Promise<{ profiles: PatientProfile[] }>;
   departments(): Promise<Department[]>;
   slots(params: {
@@ -127,8 +124,6 @@ export function createHttpApi(
     });
 
   return {
-    link: (input) =>
-      call("/link", { method: "POST", body: input, anonymous: true }),
 
     me: () => call("/me"),
 

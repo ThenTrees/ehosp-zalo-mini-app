@@ -55,21 +55,44 @@ describe("createHttpApi — phiên và bí mật", () => {
     );
   });
 
-  it("mã xác thực số điện thoại đi trong thân JSON, không trong URL", async () => {
-    const spy = spyFetch({ outcome: "CHALLENGE", need: "BIRTHDATE" });
+  /*
+   * Bí mật ĐI TRONG THÂN, KHÔNG TRONG URL.
+   *
+   * Bài này trước đây khoá `api.link()` với hai token của Zalo. Luồng ấy đã bỏ;
+   * ràng buộc thì KHÔNG — nay nó áp vào số định danh cá nhân và mật khẩu, hai
+   * thứ nhạy cảm hơn hẳn token Zalo. Viết lại thay vì xoá, vì xoá là mất chốt.
+   *
+   * URL đi vào nhật ký nginx, lịch sử trình duyệt, và thuộc tính `url.full` của
+   * OpenTelemetry (tra được từ Grafana). Thân JSON thì không.
+   */
+  it("số định danh và mật khẩu đi trong thân JSON, không trong URL", async () => {
+    const spy = spyFetch({ token: "phien-moi", patientId: 7, fullName: "A" });
     const api = createHttpApi(BASE, () => null, spy);
 
-    await api.link({
-      zaloPhoneToken: "zalo-token-bi-mat",
-      zaloAccessToken: "access-token-cua-nguoi-dung",
+    await api.ghiDanh({
+      soDinhDanh: "079090012345",
+      insuranceLast4: "1234",
+      matKhau: "mat-khau-bi-mat",
     });
 
-    expect(urlOf(spy)).toBe(`${BASE}/link`);
-    expect(urlOf(spy)).not.toContain("zalo-token-bi-mat");
+    expect(urlOf(spy)).toBe(`${BASE}/ghi-danh`);
+    expect(urlOf(spy)).not.toContain("079090012345");
+    expect(urlOf(spy)).not.toContain("mat-khau-bi-mat");
     expect(bodyOf(spy)).toEqual({
-      zaloPhoneToken: "zalo-token-bi-mat",
-      zaloAccessToken: "access-token-cua-nguoi-dung",
+      soDinhDanh: "079090012345",
+      insuranceLast4: "1234",
+      matKhau: "mat-khau-bi-mat",
     });
+  });
+
+  it("đăng nhập cũng vậy — không một mảnh bí mật nào lên URL", async () => {
+    const spy = spyFetch({ token: "phien-moi" });
+    const api = createHttpApi(BASE, () => null, spy);
+
+    await api.dangNhap({ soDinhDanh: "079090012345", matKhau: "mat-khau-bi-mat" });
+
+    expect(urlOf(spy)).toBe(`${BASE}/dang-nhap`);
+    expect(urlOf(spy)).not.toContain("mat-khau-bi-mat");
   });
 });
 

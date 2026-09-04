@@ -81,6 +81,14 @@ export function createFakeApi(): PatientAppApi {
         throw new Error("Số định danh cá nhân phải gồm 12 chữ số.");
       }
       await delay();
+      /*
+       * BẬT CỜ. Thiếu dòng này là bản demo đi thẳng tới màn hình TRỐNG ngay sau
+       * khi ghi danh: `linked` là cờ duy nhất mở khoá `assertScope` và `me()`,
+       * và trước lượt sửa này chỉ `link()` — hàm không màn hình nào còn gọi —
+       * mới bật nó. Lỗi sống được vì `fake.test.ts` mở khoá qua helper gọi
+       * chính `link()` đã chết, nên 103 phép thử vẫn xanh trong khi app hỏng.
+       */
+      linked = true;
       return {
         token: "phien-gia-sau-ghi-danh",
         patientId: PROFILES[0].patientId,
@@ -95,6 +103,8 @@ export function createFakeApi(): PatientAppApi {
     taiLieuUrl: () => "about:blank",
     dangNhap: async () => {
       await delay();
+      // Cùng lý do với `ghiDanh` ở trên — xem khối chú thích tại đó.
+      linked = true;
       return { token: "phien-gia-sau-dang-nhap" };
     },
     doiMatKhau: async () => {
@@ -170,18 +180,6 @@ export function createFakeApi(): PatientAppApi {
           },
         ],
       };
-    },
-    async link(input) {
-      await delay();
-      if (!input.birthdate) {
-        return { outcome: "CHALLENGE", need: "BIRTHDATE" };
-      }
-      if (input.birthdate !== VALID_BIRTHDATE) {
-        // Cùng một thông báo cho mọi kiểu sai — spec §5.4.
-        throw new Error("Thông tin không khớp. Vui lòng kiểm tra lại.");
-      }
-      linked = true;
-      return { outcome: "LINKED", token: "phien-gia", profiles: [...PROFILES] };
     },
 
     async me() {

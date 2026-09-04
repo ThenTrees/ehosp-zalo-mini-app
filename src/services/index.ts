@@ -17,7 +17,6 @@ export const runtimeConfig = readRuntimeConfig(
      * hai khoá trên: bản build thay chuỗi này bằng hằng, không có `define` thì
      * nó thành `undefined` và cờ im lặng không có tác dụng.
      */
-    VITE_ZALO_PHONE_GIA: import.meta.env.VITE_ZALO_PHONE_GIA,
   },
   import.meta.env.PROD,
 );
