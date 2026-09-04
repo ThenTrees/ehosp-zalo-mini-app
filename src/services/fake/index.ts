@@ -100,6 +100,10 @@ export function createFakeApi(): PatientAppApi {
      * được chạm mạng, và trả một đường dẫn thật ở đây là mở đúng cái cửa ấy.
      * Bấm vào sẽ ra một trang trắng — đúng thứ nên xảy ra khi không có tệp.
      */
+    veTaiLieu: async () => {
+      await delay();
+      return { ve: "ve-gia", hanMs: 120_000 };
+    },
     taiLieuUrl: () => "about:blank",
     dangNhap: async () => {
       await delay();

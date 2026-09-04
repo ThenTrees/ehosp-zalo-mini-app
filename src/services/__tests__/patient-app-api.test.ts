@@ -207,3 +207,38 @@ describe("createHttpApi — hợp đồng §6", () => {
     expect(bodyOf(spy)).toEqual({ patientId: 42 });
   });
 });
+
+/*
+ * VÉ TÀI LIỆU — nút "Mở bản PDF đã ký".
+ *
+ * Nút ấy từng là một thẻ `<a href>` và trả 401 trong MỌI môi trường: điều hướng
+ * không mang được header `X-Patient-Session`, webview Zalo không dùng được
+ * cookie. Nay máy khách đúc vé bằng một lời gọi `fetch` có header, rồi mới điều
+ * hướng tới URL kèm vé.
+ */
+describe("vé tài liệu", () => {
+  it("đúc vé bằng POST có header phiên, patient_id đi trong THÂN", async () => {
+    const spy = spyFetch({ ve: "ve-that", hanMs: 120000 });
+    const api = createHttpApi(BASE, () => "phien-dang-song", spy);
+
+    await api.veTaiLieu({ id: 900, patientId: 42 });
+
+    expect(urlOf(spy)).toBe(`${BASE}/tai-lieu/900/ve`);
+    expect(callOf(spy, 0)[1].method).toBe("POST");
+    expect(callOf(spy, 0)[1].headers["X-Patient-Session"]).toBe("phien-dang-song");
+    expect(bodyOf(spy)).toEqual({ patient_id: 42 });
+  });
+
+  /*
+   * URL mở tệp KHÔNG được mang `patient_id`. Đường ấy không có phiên sau lưng,
+   * nên một `patient_id` do máy khách gửi là mời đúng một lỗi IDOR — đổi số là
+   * đọc hồ sơ người khác. Máy chủ lấy nó TỪ VÉ.
+   */
+  it("URL mở tệp mang vé, KHÔNG mang patient_id", () => {
+    const api = createHttpApi(BASE, () => null, spyFetch({}));
+    const url = api.taiLieuUrl({ id: 900, ve: "ve-that" });
+    expect(url).toContain("/tai-lieu/900/tep");
+    expect(url).toContain("ve=ve-that");
+    expect(url).not.toContain("patient_id");
+  });
+});

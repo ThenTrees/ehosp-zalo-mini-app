@@ -1,4 +1,5 @@
 import { Card, SectionHeader } from "@/components/ui";
+import { MoTaiLieu } from "@/components/mo-tai-lieu";
 import { api } from "@/services";
 import type { ChiTietLuotKham } from "@/types";
 
@@ -91,14 +92,13 @@ export function DonThuocSection({
             <div className="flex items-baseline justify-between gap-3">
               <span className="text-xs text-ink-muted">{don.code}</span>
               {don.taiLieuId ? (
-                <a
-                  href={api.taiLieuUrl({ id: don.taiLieuId, patientId })}
-                  target="_blank"
-                  rel="noreferrer"
+                <MoTaiLieu
+                  id={don.taiLieuId}
+                  patientId={patientId}
                   className="shrink-0 text-xs font-medium text-primary-ink underline"
                 >
                   Mở bản PDF đã ký
-                </a>
+                </MoTaiLieu>
               ) : (
                 <span className="shrink-0 text-xs text-ink-muted">
                   Chưa có bản PDF
@@ -261,12 +261,11 @@ export function TaiLieuSection({
       <SectionHeader title="Giấy tờ của lần khám này" />
       <div className="flex flex-col">
         {d.taiLieu.map((t) => (
-          <a
+          <MoTaiLieu
             key={t.id}
-            href={api.taiLieuUrl({ id: t.id, patientId })}
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-baseline justify-between gap-3 border-b border-line py-2.5 last:border-0"
+            id={t.id}
+            patientId={patientId}
+            className="flex w-full items-baseline justify-between gap-3 border-b border-line py-2.5 text-left last:border-0"
           >
             <span className="min-w-0 flex-1 text-ink">
               {TEN_LOAI[t.loai] ?? t.tenHienThi ?? t.loai}
@@ -279,7 +278,7 @@ export function TaiLieuSection({
             <span className="shrink-0 text-xs text-primary-ink">
               Mở PDF{t.soByte ? ` · ${coKB(t.soByte)}` : ""}
             </span>
-          </a>
+          </MoTaiLieu>
         ))}
       </div>
     </Card>

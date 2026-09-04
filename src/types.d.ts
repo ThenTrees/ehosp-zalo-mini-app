@@ -283,3 +283,10 @@ export interface DangNhapInput {
   soDinhDanh: string;
   matKhau: string;
 }
+
+/** Vé mở tệp tài liệu — xem `PatientAppApi.veTaiLieu`. */
+export interface VeTaiLieu {
+  ve: string;
+  /** Hạn của vé, tính bằng mili giây kể từ lúc đúc. */
+  hanMs: number;
+}

@@ -1,5 +1,6 @@
-import { request } from "./http";
+import { buildUrl, request } from "./http";
 import type {
+  VeTaiLieu,
   ChiTietLuotKham,
   DangNhapInput,
   GhiDanhInput,
@@ -66,7 +67,22 @@ export interface PatientAppApi {
    * một tờ bệnh án vài trăm KB nhân với số lần bấm là thứ không đáng giữ trong
    * RAM của một chiếc điện thoại cũ.
    */
-  taiLieuUrl(params: { id: number; patientId: number }): string;
+  /**
+   * Đúc một VÉ để mở tệp tài liệu. Cần phiên; trả về chuỗi vé và hạn của nó.
+   *
+   * Vé tồn tại vì thẻ `<a href>` KHÔNG mang được header `X-Patient-Session`,
+   * mà webview Zalo cũng không dùng được cookie — nút "Mở bản PDF đã ký" vì thế
+   * trả 401 trong mọi môi trường. Máy chủ đổi vé lấy quyền đọc ĐÚNG một tài
+   * liệu, một lần, trong 120 giây.
+   */
+  veTaiLieu(params: { id: number; patientId: number }): Promise<VeTaiLieu>;
+  /**
+   * URL mở tệp, có kèm vé.
+   *
+   * ⚠ KHÔNG còn `patient_id` trên URL: máy chủ lấy nó TỪ VÉ. Truyền số ấy lên
+   * đường không có phiên là mời một lỗi IDOR — đổi số là đọc hồ sơ người khác.
+   */
+  taiLieuUrl(params: { id: number; ve: string }): string;
   prescriptions(params: { patientId: number }): Promise<PrescriptionSummary[]>;
   invoices(params: { patientId: number }): Promise<InvoiceSummary[]>;
   invoiceQr(id: number): Promise<VietQrPayload>;
@@ -204,8 +220,21 @@ export function createHttpApi(
      * MÔ-ĐUN, dưới dạng "mod.createHttpApi is not a function" ở một tệp thử
      * không liên quan gì. Đo được ngày 2026-09-04.
      */
-    taiLieuUrl: ({ id, patientId }) =>
-      `${baseUrl}/tai-lieu/${id}/tep?patient_id=${patientId}`,
+    veTaiLieu: ({ id, patientId }) =>
+      call<VeTaiLieu>(`/tai-lieu/${id}/ve`, {
+        method: "POST",
+        body: { patient_id: patientId },
+      }),
+
+    /*
+     * `ve` LÀ NGOẠI LỆ DUY NHẤT của luật "không để thông tin xác thực trên URL"
+     * (xem `FORBIDDEN_QUERY_KEYS` ở http.ts), và ngoại lệ ấy có lý do chứ không
+     * phải một chỗ quên: URL này KHÔNG do `fetch` gọi mà do một lượt ĐIỀU HƯỚNG
+     * mở ra, nên không có chỗ nào gắn header vào được. Bù lại, vé dùng ĐÚNG MỘT
+     * LẦN và sống 120 giây — nên vé nằm lại trong lịch sử trình duyệt, nhật ký
+     * nginx hay dấu vết OpenTelemetry đều là vé ĐÃ CHÁY.
+     */
+    taiLieuUrl: ({ id, ve }) => buildUrl(baseUrl, `/tai-lieu/${id}/tep`, { ve }),
 
     visitDetail: ({ id, patientId }) =>
       call<ChiTietLuotKham>(`/visits/${id}`, {
