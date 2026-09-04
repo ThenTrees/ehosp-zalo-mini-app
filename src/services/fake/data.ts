@@ -60,6 +60,7 @@ export const VISITS: Record<number, VisitSummary[]> = {
       visitDate: "2026-08-14",
       status: "DONE",
       departmentId: 1,
+      chanDoanChinh: { ma: "J20", ten: "Viêm phế quản cấp" },
     },
     {
       id: 5102,
@@ -67,6 +68,7 @@ export const VISITS: Record<number, VisitSummary[]> = {
       visitDate: "2026-07-02",
       status: "DONE",
       departmentId: 2,
+      chanDoanChinh: null,
     },
     {
       id: 5103,
@@ -74,6 +76,7 @@ export const VISITS: Record<number, VisitSummary[]> = {
       visitDate: "2026-06-15",
       status: "CANCELLED",
       departmentId: 1,
+      chanDoanChinh: { ma: "D50", ten: "Thiếu máu do thiếu sắt" },
     },
   ],
   102: [
@@ -83,6 +86,7 @@ export const VISITS: Record<number, VisitSummary[]> = {
       visitDate: "2026-08-20",
       status: "IN_PROGRESS",
       departmentId: 4,
+      chanDoanChinh: null,
     },
   ],
 };

@@ -95,6 +95,14 @@ export interface VisitSummary {
   status: VisitStatus;
   /** Tra tên khoa qua danh mục `/departments`, máy chủ không trả kèm tên. */
   departmentId: number;
+  /**
+   * Chẩn đoán CHÍNH, đi kèm ngay trong danh sách.
+   *
+   * Người bệnh mở màn Lịch sử khám để tìm "lần tôi bị viêm phế quản", không
+   * phải "VK2026090200049". `null` khi lượt ấy chưa có chẩn đoán — khác với
+   * chuỗi rỗng, và màn hình phải im lặng chứ không vẽ một dòng trống.
+   */
+  chanDoanChinh: { ma: string; ten: string } | null;
 }
 
 /**
@@ -167,4 +175,141 @@ export interface CreateAppointmentInput {
   /** YYYY-MM-DD */
   date: string;
   session: Session;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * NỘI DUNG LÂM SÀNG — chi tiết một lượt khám
+ *
+ * ⚠ ĐÂY LÀ CHỖ RÀNG BUỘC CŨ BỊ ĐẢO, VÀ NÓ ĐƯỢC ĐẢO CÓ CHỦ Ý.
+ * Tới 2026-09-03, mini app cố ý KHÔNG mang nội dung lâm sàng: không chẩn đoán,
+ * không tên thuốc, không trị xét nghiệm. Lý lẽ khi ấy là Sổ sức khoẻ điện tử
+ * trên VNeID đã làm việc đó và có giá trị pháp lý tương đương bản giấy
+ * (QĐ 31/QĐ-BYT), nên tự dựng màn xem bệnh án là làm bản kém hơn kèm toàn bộ
+ * rủi ro riêng tư.
+ *
+ * Chủ phòng khám đã quyết khác: người bệnh xem được toàn bộ bệnh sử của CHÍNH
+ * MÌNH ngay trong app. Đó là quyền của họ theo Điều 10 Luật KCB 15/2023 — nên
+ * đây là lựa chọn về NƠI cung cấp, không phải một lần nới lỏng.
+ *
+ * `no-clinical-content.test.ts` KHÔNG bị xoá: nó được viết lại thành luật mới,
+ * vẫn khoá từng trường bằng danh sách trắng. Ràng buộc còn nguyên hình dạng,
+ * chỉ rộng ra — và rộng ra đúng những trường đã liệt kê ở đây, không hơn.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+export interface ChanDoan {
+  ma: string;
+  ten: string;
+  chinh: boolean;
+}
+
+export interface ThuocDaKe {
+  ten: string;
+  tenThuongMai: string | null;
+  hamLuong: string | null;
+  duongDung: string | null;
+  soLuong: number;
+  donVi: string | null;
+  lieu: string | null;
+  soLan: string | null;
+  soNgay: number | null;
+  loiDan: string | null;
+}
+
+export interface DonThuocChiTiet {
+  code: string;
+  issuedDate: string | null;
+  status: string;
+  thuoc: ThuocDaKe[];
+  /**
+   * Bản PDF đã ký của CHÍNH đơn này. `null` khi đơn chưa đóng băng — và đó là
+   * phần lớn (72/1894 lượt khám có tệp trên cụm hôm nay), nên màn hình phải
+   * NÓI RA khi không có thay vì ẩn nút đi im lặng.
+   */
+  taiLieuId: number | null;
+}
+
+export interface ChiSoXetNghiem {
+  ma: string;
+  ten: string;
+  tri: string | null;
+  donVi: string | null;
+  thapNhat: number | null;
+  caoNhat: number | null;
+  khoangChu: string | null;
+  /** Cờ do PHÒNG XÉT NGHIỆM chấm (H/L/A…), không phải thứ app tự suy. */
+  co: string | null;
+  ghiChu: string | null;
+}
+
+export interface PhieuXetNghiem {
+  accessionNo: string;
+  serviceName: string | null;
+  ketQuaLuc: string | null;
+  chiSo: ChiSoXetNghiem[];
+}
+
+export interface DongBangKe {
+  item_name: string;
+  unit: string | null;
+  quantity: string | number;
+  unit_price: string | number;
+  amount: string | number;
+  bhyt_pay: string | number;
+  patient_pay: string | number;
+}
+
+export interface BangKeLuotKham {
+  code: string;
+  total_amount: string | number;
+  bhyt_amount: string | number;
+  patient_amount: string | number;
+  status: string;
+  items: DongBangKe[];
+}
+
+export interface TaiLieuDaKy {
+  id: number;
+  loai: string;
+  banSo: number;
+  tenHienThi: string | null;
+  soByte: number | null;
+}
+
+export interface ChiTietLuotKham {
+  visitId: number;
+  visitCode: string;
+  visitDate: string | null;
+  status: string;
+  departmentName: string | null;
+  chanDoan: ChanDoan[];
+  donThuoc: DonThuocChiTiet[];
+  /** `null` = dịch vụ cận lâm sàng không trả lời được, KHÁC với mảng rỗng. */
+  xetNghiem: PhieuXetNghiem[] | null;
+  /** `null` = chưa có bảng kê, hoặc dịch vụ tài chính không trả lời được. */
+  bangKe: BangKeLuotKham | null;
+  /**
+   * Giấy tờ ĐÃ KÝ và đóng băng của lượt khám. Khác với bốn nhóm trên: chúng
+   * đọc lại từ CSDL mỗi lần mở, còn đây là những tờ đã khoá trong ngăn
+   * ghi-một-lần — bản người bệnh cầm đi đâu cũng đối chiếu được.
+   */
+  taiLieu: TaiLieuDaKy[];
+}
+
+/* ─────────────────────── Tài khoản: ghi danh và đăng nhập ─────────────── */
+
+export interface GhiDanhInput {
+  soDinhDanh: string;
+  insuranceLast4: string;
+  matKhau: string;
+}
+
+export interface GhiDanhResponse {
+  token: string;
+  patientId: number;
+  fullName: string;
+}
+
+export interface DangNhapInput {
+  soDinhDanh: string;
+  matKhau: string;
 }

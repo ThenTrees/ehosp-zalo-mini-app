@@ -20,6 +20,26 @@ npm run deploy       # zmp deploy -> publishes to Zalo, output goes to www/
 - emr-api needs `CORS_ORIGINS=http://localhost:3001` in `d:/projects/eHosp/.env` — the app's origin. Empty means no CORS middleware at all, and every call dies at preflight because the client sends `X-Patient-Session`.
 - `www/` is build output; never edit it.
 
+## Thử với emr-api thật mà không cần ứng dụng Zalo
+
+`getPhoneNumber()` của `zmp-sdk` chỉ chạy bên trong ứng dụng Zalo thật, nên trên
+trình duyệt không có cách nào đi trọn luồng liên kết. Đặt `VITE_ZALO_PHONE_GIA`
+trong `.env` thành một số **có thật trong `emr_patient_link`**:
+
+```bash
+VITE_USE_FAKE=false
+VITE_API_BASE_URL=http://127.0.0.1:3000/api/patient-app
+VITE_ZALO_PHONE_GIA=0908220101      # BN0000001, ngày sinh 1968-03-12
+```
+
+Máy khách gửi thẳng số ấy làm mã; máy chủ ở chế độ phát triển (thiếu
+`ZALO_APP_SECRET`, `NODE_ENV` khác `production`) coi chính nó LÀ số điện thoại.
+Tầng dữ liệu **vẫn thật**. `readRuntimeConfig` bỏ qua cờ ở bản dựng phát hành.
+
+Điều kiện phía máy chủ: emr-api phải mang mã có `modules/patient-app` (nhánh
+`pr-15` trở đi), và `CORS_ORIGINS` phải chứa `http://localhost:3001` — hoặc
+`:3009` nếu chạy `zmp start -P 3010`.
+
 ## Đối chiếu với emr-api thật
 
 `npm test` chạy trên tầng dữ liệu giả và **không** cần máy chủ. Bên cạnh đó có

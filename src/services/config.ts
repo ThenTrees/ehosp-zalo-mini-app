@@ -21,9 +21,37 @@ export interface RuntimeConfig {
    * dụng Zalo thật, nên phải tắt được khi phát triển trên trình duyệt.
    */
   useFake: boolean;
+  /**
+   * SỐ ĐIỆN THOẠI THAY CHO SDK ZALO — chỉ khi phát triển.
+   *
+   * `useFake` gác HAI thứ cùng lúc: tầng dữ liệu và SDK điện thoại. Nên trước
+   * cờ này chỉ có hai nước, và không nước nào thử được máy chủ thật:
+   *   · `VITE_USE_FAKE=true`  → không chạm mạng, máy chủ không được thử dòng nào
+   *   · `VITE_USE_FAKE=false` → gọi `getPhoneNumber()`, mà SDK ấy chỉ chạy bên
+   *     trong ứng dụng Zalo thật; trên trình duyệt nó không trả về gì
+   * Đặt `VITE_ZALO_PHONE_GIA=<số>` mở nước thứ ba: tầng dữ liệu THẬT, SDK bỏ
+   * qua. Nó khớp với nhánh đã có sẵn ở máy chủ — `modules/patient-app/zalo.ts`
+   * khi thiếu `ZALO_APP_SECRET` và `NODE_ENV` khác `production` thì coi chính
+   * mã gửi lên LÀ số điện thoại. Hai đầu vốn đã hẹn nhau; chỉ máy khách chưa
+   * có đường nói.
+   *
+   * ĐÂY KHÔNG PHẢI CHẾ ĐỘ `hybrid` ĐÃ BỎ. Chế độ ấy trộn tuyến thật với tuyến
+   * bịa nên người nghiệm thu không biết màn nào nói thật. Cờ này KHÔNG đụng
+   * tầng dữ liệu — mọi tuyến vẫn thật, mọi dòng vẫn vào CSDL thật; nó chỉ thay
+   * đúng một lời gọi SDK mà trình duyệt không chạy được.
+   *
+   * Rỗng ở bản dựng phát hành: `readRuntimeConfig` bỏ qua cờ khi `PROD`.
+   */
+  soDienThoaiGia: string;
 }
 
-export function readRuntimeConfig(env: Record<string, unknown>): RuntimeConfig {
+/** Chỉ nhận dạng số Việt Nam — chặn người ta nhét một token thật vào đây. */
+const LA_SO_VN = /^(0|\+?84)\d{8,10}$/;
+
+export function readRuntimeConfig(
+  env: Record<string, unknown>,
+  laBanPhatHanh = false,
+): RuntimeConfig {
   const raw = String(env.VITE_USE_FAKE ?? "")
     .toLowerCase()
     .trim();
@@ -36,5 +64,22 @@ export function readRuntimeConfig(env: Record<string, unknown>): RuntimeConfig {
     );
   }
 
-  return { apiBaseUrl, mode, useFake: mode === "fake" };
+  /*
+   * BA CHỐT, và chốt đầu là chốt duy nhất không được bỏ: một bản phát hành mà
+   * mọi người bệnh cùng đăng nhập bằng một số điện thoại viết cứng là một sự
+   * cố, không phải một lỗi. Hai chốt sau chỉ để bắt lỗi gõ sớm.
+   */
+  const soThoo = String(env.VITE_ZALO_PHONE_GIA ?? "").trim();
+  let soDienThoaiGia = "";
+  if (soThoo && !laBanPhatHanh && mode !== "fake") {
+    if (!LA_SO_VN.test(soThoo)) {
+      throw new Error(
+        `VITE_ZALO_PHONE_GIA không phải số điện thoại Việt Nam: "${soThoo}".` +
+          " Đặt một số có thật trong emr_patient_link, ví dụ 0908220101.",
+      );
+    }
+    soDienThoaiGia = soThoo;
+  }
+
+  return { apiBaseUrl, mode, useFake: mode === "fake", soDienThoaiGia };
 }

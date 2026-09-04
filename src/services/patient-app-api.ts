@@ -1,5 +1,9 @@
 import { request } from "./http";
 import type {
+  ChiTietLuotKham,
+  DangNhapInput,
+  GhiDanhInput,
+  GhiDanhResponse,
   Appointment,
   CreateAppointmentInput,
   Department,
@@ -42,7 +46,30 @@ export interface PatientAppApi {
     reason: string;
   }): Promise<Appointment>;
   queue(params: { patientId: number }): Promise<QueueStatus>;
+  /* ── Tài khoản: ghi danh và đăng nhập bằng số định danh ── */
+  ghiDanh(input: GhiDanhInput): Promise<GhiDanhResponse>;
+  dangNhap(input: DangNhapInput): Promise<{ token: string }>;
+  doiMatKhau(input: { matKhauCu: string; matKhauMoi: string }): Promise<{
+    soPhienDaThuHoi: number;
+  }>;
+
   visits(params: { patientId: number }): Promise<VisitSummary[]>;
+  /**
+   * Chi tiết MỘT lượt khám: chẩn đoán, đơn thuốc có tên và liều, kết quả xét
+   * nghiệm, bảng kê. Xem khối chú thích ở `types.d.ts › ChiTietLuotKham` để
+   * biết vì sao ràng buộc "không nội dung lâm sàng" được đảo.
+   */
+  visitDetail(params: {
+    id: number;
+    patientId: number;
+  }): Promise<ChiTietLuotKham>;
+  /**
+   * Đường mở một tờ giấy ĐÃ KÝ. Trả URL chứ không trả byte: tệp PDF đi thẳng từ
+   * máy chủ vào trình xem của điện thoại, không phải qua bộ nhớ của mini app —
+   * một tờ bệnh án vài trăm KB nhân với số lần bấm là thứ không đáng giữ trong
+   * RAM của một chiếc điện thoại cũ.
+   */
+  taiLieuUrl(params: { id: number; patientId: number }): string;
   prescriptions(params: { patientId: number }): Promise<PrescriptionSummary[]>;
   invoices(params: { patientId: number }): Promise<InvoiceSummary[]>;
   invoiceQr(id: number): Promise<VietQrPayload>;
@@ -163,6 +190,33 @@ export function createHttpApi(
     queue: ({ patientId }) =>
       call("/queue", { query: { patient_id: patientId } }),
 
+    /*
+     * BA TUYẾN TÀI KHOẢN đi `anonymous: true` — hai tuyến đầu là CỬA VÀO, và
+     * một cửa vào đòi phiên thì không ai vào được. `doiMatKhau` thì cần phiên,
+     * nên nó KHÔNG anonymous.
+     */
+    ghiDanh: (input) =>
+      call("/ghi-danh", { method: "POST", body: input, anonymous: true }),
+    dangNhap: (input) =>
+      call("/dang-nhap", { method: "POST", body: input, anonymous: true }),
+    doiMatKhau: (input) =>
+      call("/doi-mat-khau", { method: "POST", body: input }),
+
+    /*
+     * Dùng `baseUrl` mà nhà máy đã nhận, KHÔNG nhập `runtimeConfig` từ
+     * `./index`: tệp ấy nhập ngược `createHttpApi` từ đây, nên một dòng import
+     * thêm là một vòng tròn — và nó không nổ lúc biên dịch mà nổ lúc NẠP
+     * MÔ-ĐUN, dưới dạng "mod.createHttpApi is not a function" ở một tệp thử
+     * không liên quan gì. Đo được ngày 2026-09-04.
+     */
+    taiLieuUrl: ({ id, patientId }) =>
+      `${baseUrl}/tai-lieu/${id}/tep?patient_id=${patientId}`,
+
+    visitDetail: ({ id, patientId }) =>
+      call<ChiTietLuotKham>(`/visits/${id}`, {
+        query: { patient_id: patientId },
+      }),
+
     visits: async ({ patientId }) =>
       unwrap(
         await call<Wrapped<VisitSummary>>("/visits", {
@@ -177,8 +231,20 @@ export function createHttpApi(
         }),
       ),
 
-    // `/invoices` trả mảng trần — `boc()` vẫn chạy đúng, giữ lại để một lần đổi
-    // khuôn ở máy chủ không làm trống màn hình hoá đơn.
+    /*
+     * ⚠ HAI TUYẾN DƯỚI ĐÂY ĐANG BỊ RÚT Ở MÁY CHỦ — KHÔNG MÀN HÌNH NÀO ĐƯỢC GỌI.
+     *
+     * `emr-api` bỏ `GET /patient-app/invoices` và `GET /invoices/:id/qr` ngày
+     * 29/08/2026: chúng gọi `modules/payment/`, mô-đun đã đi theo dịch vụ tài
+     * chính cùng mười tám bảng tiền. Gọi vào là nhận 404 của bộ xử lý tập trung
+     * — đúng thứ đã hạ cả ứng dụng ngày 03/09/2026 khi Trang chủ còn đọc
+     * `invoicesState`.
+     *
+     * Giữ lại hai hàm này vì hợp đồng §6 không đổi và test dưới
+     * `__tests__/patient-app-api.test.ts` vẫn khoá đúng hình dạng yêu cầu, nên
+     * lúc dịch vụ tài chính mở cửa nội bộ cho tự phục vụ thì chỉ cần dựng lại
+     * màn hình. `/invoices` trả mảng trần — `unwrap()` đã chịu được cả hai khuôn.
+     */
     invoices: async ({ patientId }) =>
       unwrap(
         await call<InvoiceSummary[]>("/invoices", {

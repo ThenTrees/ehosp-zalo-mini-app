@@ -69,12 +69,56 @@ khám, trạng thái* và *mã đơn, ngày kê, trạng thái phát thuốc* �
 Một tài khoản Zalo liên kết được **nhiều hồ sơ** (bố mẹ đặt lịch cho con), và
 huỷ liên kết được rồi liên kết lại được.
 
+> ⚠ **Hai màn hình hoá đơn ở giữa bảng trên hiện KHÔNG chạy** — xem
+> [Tuyến đã rút](#tuyến-đã-rút) ngay dưới. Ảnh chụp giữ lại để lúc dựng lại còn
+> biết đích đến trông thế nào.
+
+---
+
+## Tuyến đã rút
+
+`emr-api` bỏ hai tuyến khỏi `modules/patient-app/router.ts` ngày **29/08/2026**:
+
+| Tuyến | Vì sao | Phía máy khách bây giờ |
+|---|---|---|
+| `GET /patient-app/invoices` | gọi `modules/payment/`, mô-đun đã đi theo **dịch vụ tài chính** cùng mười tám bảng tiền | `/invoices` chỉ còn một lời báo tĩnh, **không gọi API**; đã gỡ khỏi thanh tab và khỏi ô thao tác nhanh của Trang chủ |
+| `GET /patient-app/invoices/:id/qr` | cùng lý do | route và `pages/invoices/qr.tsx` đã gỡ hẳn |
+
+Không nối tạm qua `taiChinhProxyRouter` được: cửa ấy chuyển tiếp phiên **nhân
+viên**, còn người bệnh mang `X-Patient-Session`. Tuyến trở lại khi dịch vụ tài
+chính mở một cửa nội bộ cho tự phục vụ.
+
+`api.invoices()` và `api.invoiceQr()` **vẫn còn** trong `patient-app-api.ts`
+cùng bộ thử của chúng, để lúc đó chỉ phải dựng lại màn hình. Cho tới lúc đó
+**không màn hình nào được gọi tới hai hàm ấy** — `src/services/__tests__/dieu-huong.test.ts`
+canh chừng phần điều hướng.
+
+<details>
+<summary>Vì sao một tuyến biến mất lại hạ được cả ứng dụng (03/09/2026)</summary>
+
+Trang chủ đọc `invoicesState` **vô điều kiện**, trước cả nhánh sớm
+`profiles.length === 0`. Atom là atom trần, `ApiError` nổi lên trong lúc render,
+và `ErrorBoundary` khi ấy gắn ở route **gốc** — cùng route mang
+`element: <Layout/>` — nên react-router thay luôn cả Layout: mất Header, mất
+thanh tab. Mọi người bệnh đã liên kết mở app đều thấy 404 toàn màn hình, dù bảy
+tuyến còn lại vẫn chạy tốt.
+
+Hai lớp che khiến nó không lộ lúc phát triển: `VITE_USE_FAKE=true` không chạm
+mạng, và `contract-parity.test.ts` tự `describe.skip` khi thiếu biến môi trường.
+
+Đã chốt lại bằng ba việc: mọi atom dữ liệu đi qua `nuot401`, mỗi **route con** có
+`ErrorBoundary` riêng (`src/components/route-error.tsx`), và từng thẻ của Trang
+chủ nằm trong `SilentBoundary` riêng. Một tuyến hỏng chỉ được lấy đi một thẻ.
+
+</details>
+
 ---
 
 ## Phạm vi giai đoạn 1
 
 **Trong phạm vi:** liên kết tài khoản · đặt lịch khám · lịch hẹn của tôi · số
-thứ tự · lịch sử khám (chỉ siêu dữ liệu) · hoá đơn và mã VietQR.
+thứ tự · lịch sử khám (chỉ siêu dữ liệu) · hoá đơn và mã VietQR
+(hai màn hoá đơn **tạm ngưng**, xem mục trên).
 
 **Ngoài phạm vi, cố ý:** nội dung lâm sàng · chọn bác sĩ cụ thể · khám từ xa ·
 phát hành lên App Store / Google Play. Thông báo "kết quả đã có", đường web dự

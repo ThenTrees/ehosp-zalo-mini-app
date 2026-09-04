@@ -15,30 +15,95 @@ import typesSource from "../../types.d.ts?raw";
  * thứ hai bên dưới liệt kê trắng đúng các trường được phép, chặt hơn hẳn một
  * danh sách từ cấm.
  */
-const FORBIDDEN_WORDS = [
-  "diagnosis",
-  "chandoan",
-  "icd",
-  "labresult",
-  "testresult",
-  "drugname",
-  "medicine",
-  "dosage",
-  "tenthuoc",
-  "lieudung",
+/*
+ * ⚠ DANH SÁCH TỪ CẤM ĐÃ BỎ HẲN NGÀY 2026-09-03, VÀ ĐÂY LÀ LÝ DO.
+ *
+ * Chủ phòng khám quyết cho người bệnh xem toàn bộ bệnh sử của CHÍNH MÌNH trong
+ * app — chẩn đoán, đơn thuốc có tên và liều, kết quả xét nghiệm, bảng kê. Đó là
+ * quyền của họ theo Điều 10 Luật KCB 15/2023, nên đây là lựa chọn về NƠI cung
+ * cấp chứ không phải một lần nới lỏng.
+ *
+ * Cấm theo TỪ vì thế hết nghĩa: "diagnosis" và "drugname" nay là những thứ hợp
+ * đồng PHẢI có. Nhưng phép thử KHÔNG bị xoá, vì thứ nó thật sự canh chưa bao
+ * giờ là mấy cái từ — mà là "hợp đồng chỉ mang đúng những trường đã được ai đó
+ * quyết". Danh sách trắng bên dưới làm đúng việc ấy, và chặt hơn: thêm một
+ * trường mới vào `types.d.ts` mà không sửa danh sách là phép thử đỏ ngay.
+ *
+ * MỘT THỨ VẪN CẤM TUYỆT ĐỐI, và nó nằm ở `KHONG_BAO_GIO`: ghi chú nội bộ của
+ * nhân viên. Bệnh sử là của người bệnh; lời bác sĩ ghi cho đồng nghiệp đọc thì
+ * không, và trộn hai thứ ấy vào một màn hình là chuyện không rút lại được.
+ */
+const KHONG_BAO_GIO = [
+  "ghichunoibo",
+  "internalnote",
+  "staffnote",
+  "nhanxetnoibo",
 ];
 
-/** Trường được phép, theo đúng câu SELECT trong `patient-app/service.ts`. */
+/**
+ * Trường được phép, theo đúng câu SELECT trong `patient-app/service.ts` và hai
+ * tuyến nội bộ `ketQuaNoiBo.ts` / `bangKeNoiBo.ts`.
+ *
+ * Danh sách này là HỢP ĐỒNG, không phải ảnh chụp. Thêm một trường vào
+ * `types.d.ts` mà không thêm vào đây thì phép thử đỏ — và đó là lúc người sửa
+ * phải dừng lại tự hỏi trường ấy có đáng nằm trên màn hình người bệnh không.
+ */
 const ALLOWED_FIELDS: Record<string, string[]> = {
-  VisitSummary: ["id", "visitCode", "visitDate", "status", "departmentId"],
+  VisitSummary: [
+    "id",
+    "visitCode",
+    "visitDate",
+    "status",
+    "departmentId",
+    "chanDoanChinh",
+  ],
+  TaiLieuDaKy: ["id", "loai", "banSo", "tenHienThi", "soByte"],
   PrescriptionSummary: ["id", "code", "status", "issuedDate", "visitId"],
+  ChanDoan: ["ma", "ten", "chinh"],
+  ThuocDaKe: [
+    "ten",
+    "tenThuongMai",
+    "hamLuong",
+    "duongDung",
+    "soLuong",
+    "donVi",
+    "lieu",
+    "soLan",
+    "soNgay",
+    "loiDan",
+  ],
+  DonThuocChiTiet: ["code", "issuedDate", "status", "thuoc", "taiLieuId"],
+  ChiSoXetNghiem: [
+    "ma",
+    "ten",
+    "tri",
+    "donVi",
+    "thapNhat",
+    "caoNhat",
+    "khoangChu",
+    "co",
+    "ghiChu",
+  ],
+  PhieuXetNghiem: ["accessionNo", "serviceName", "ketQuaLuc", "chiSo"],
+  ChiTietLuotKham: [
+    "visitId",
+    "visitCode",
+    "visitDate",
+    "status",
+    "departmentName",
+    "chanDoan",
+    "donThuoc",
+    "xetNghiem",
+    "bangKe",
+    "taiLieu",
+  ],
 };
 
 /** Lấy các tên trường khai trong một `interface` của tệp types. */
 function fieldsOf(source: string, name: string): string[] {
-  const body = new RegExp(`export interface ${name} \\{([\\s\\S]*?)\\n\\}`).exec(
-    source,
-  )?.[1];
+  const body = new RegExp(
+    `export interface ${name} \\{([\\s\\S]*?)\\n\\}`,
+  ).exec(source)?.[1];
   if (body === undefined) {
     throw new Error(`Không tìm thấy interface ${name} trong types.d.ts`);
   }
@@ -59,15 +124,15 @@ describe("hợp đồng dữ liệu không chứa nội dung lâm sàng", () => 
     expect(typesSource).toContain("VisitSummary");
   });
 
-  it("types.d.ts không khai báo trường lâm sàng nào", () => {
+  it("không bao giờ mang ghi chú nội bộ của nhân viên", () => {
     const content = typesSource.toLowerCase().replace(/[^a-z]/g, "");
 
-    for (const word of FORBIDDEN_WORDS) {
+    for (const word of KHONG_BAO_GIO) {
       expect(content).not.toContain(word);
     }
   });
 
-  it("lượt khám và đơn thuốc chỉ có đúng các trường đã liệt kê trắng", () => {
+  it("mọi kiểu dữ liệu lâm sàng chỉ có đúng các trường đã liệt kê trắng", () => {
     for (const [name, allowed] of Object.entries(ALLOWED_FIELDS)) {
       expect(fieldsOf(typesSource, name).sort()).toEqual([...allowed].sort());
     }

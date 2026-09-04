@@ -4,12 +4,43 @@ import { api, setSessionToken } from "@/services";
 import { ApiError } from "@/services/http";
 import { clearSession, loadSession, saveSession } from "@/services/session";
 import type {
+  ChiTietLuotKham,
   Appointment,
-  InvoiceSummary,
+  PatientProfile,
   PrescriptionSummary,
+  QueueStatus,
   Session,
   VisitSummary,
 } from "@/types";
+
+/**
+ * Lớp nuốt-và-báo dùng chung cho MỌI atom đọc dữ liệu người bệnh.
+ *
+ * Chỉ nuốt 401: phiên hết hạn và "chưa liên kết" là hai đường dẫn tới cùng một
+ * đích, và cả hai đều phải ra dữ liệu rỗng chứ không phải một màn hình lỗi.
+ * Mọi mã lỗi khác vẫn nổi lên — nuốt 404/500 thành mảng rỗng là biến sự cố máy
+ * chủ thành câu "bạn chưa có dữ liệu nào", đúng kiểu hỏng mà `unwrap()` trong
+ * `patient-app-api.ts` đã ghi là tệ nhất ở đây.
+ *
+ * Phần chống sập không nằm ở đây mà ở các lớp bọc lỗi: `ErrorBoundary` riêng
+ * cho từng route con (`src/router.tsx`) và `SilentBoundary` quanh từng thẻ của
+ * Trang chủ. Một tuyến biến mất chỉ được hỏng MỘT thẻ, không được hạ cả app.
+ */
+export async function nuot401<T>(
+  duPhong: T,
+  chay: () => Promise<T>,
+): Promise<T> {
+  try {
+    return await chay();
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) {
+      await clearSession();
+      setSessionToken(null);
+      return duPhong;
+    }
+    throw error;
+  }
+}
 
 /**
  * Phiên và hồ sơ đang xem
@@ -38,23 +69,12 @@ export const storedSessionState = atom(async () => {
  *
  * 401 được quy về rỗng chứ không ném ra: chưa liên kết và phiên hết hạn là hai
  * đường dẫn tới cùng một đích, và ném lỗi ở đây làm error boundary của React
- * Router nuốt cả cây — trắng màn hình (2026-09-01). Chỉ 401 mới được nuốt; mọi
- * mã lỗi khác vẫn phải nổi lên để sự cố máy chủ không bị nguỵ trang thành
- * "chưa liên kết".
+ * Router nuốt cả cây — trắng màn hình (2026-09-01). Luật ấy nay nằm trong
+ * `nuot401` và mọi atom dữ liệu đều đi qua đó.
  */
 export const profilesState = atomWithRefresh(async (get) => {
   await get(storedSessionState);
-  try {
-    const { profiles } = await api.me();
-    return profiles;
-  } catch (error) {
-    if (error instanceof ApiError && error.status === 401) {
-      await clearSession();
-      setSessionToken(null);
-      return [];
-    }
-    throw error;
-  }
+  return nuot401<PatientProfile[]>([], async () => (await api.me()).profiles);
 });
 
 /** Kho chứa thật, không xuất ra ngoài — ghi vào đây không kèm việc lưu trữ. */
@@ -96,7 +116,7 @@ export const hydrateSessionState = atom(null, async (get, set) => {
 /** Ghi phiên xuống kho lưu trữ sau khi liên kết thành công. */
 export const applyLinkState = atom(
   null,
-  async (_get, set, payload: { token: string; patientId: number }) => {
+  async (_get, set, payload: { token: string; patientId: number | null }) => {
     setSessionToken(payload.token);
     await saveSession({
       token: payload.token,
@@ -107,11 +127,37 @@ export const applyLinkState = atom(
   },
 );
 
-export const unlinkState = atom(null, async (_get, set, patientId: number) => {
+/**
+ * Huỷ liên kết MỘT hồ sơ.
+ *
+ * Máy chủ chỉ thu hồi phiên khi hồ sơ vừa huỷ là hồ sơ CUỐI CÙNG — `huyLienKet`
+ * gọi `thuHoiTatCa` chỉ khi `hoSoDuocPhep()` rỗng. Máy khách trước đây
+ * `clearSession()` cho MỌI lần huỷ, nên phụ huynh giữ hai hồ sơ (mình + con)
+ * mà huỷ hồ sơ con là mất luôn quyền xem hồ sơ của chính mình và phải chạy lại
+ * toàn bộ luồng Zalo + ngày sinh. Lỗi ấy trước 2026-09-03 là mã chết vì lỗi
+ * 204 ở `http.ts` ném trước — vá 204 xong là nó sống dậy ngay.
+ *
+ * Danh sách hồ sơ được đọc TRƯỚC lời gọi mạng: `get` của hàm ghi đọc trạng thái
+ * tại thời điểm gọi, dùng lại nó sau `await` là đọc một ảnh chụp đã cũ.
+ */
+export const unlinkState = atom(null, async (get, set, patientId: number) => {
+  const truoc = await get(profilesState);
+  const dangChon = get(activePatientIdBaseState);
+
   await api.unlink(patientId);
-  await clearSession();
-  setSessionToken(null);
-  set(activePatientIdBaseState, null);
+
+  const conLai = truoc.filter((p) => p.patientId !== patientId);
+  if (conLai.length === 0) {
+    await clearSession();
+    setSessionToken(null);
+    set(activePatientIdBaseState, null);
+  } else if (dangChon === patientId) {
+    // Còn hồ sơ khác thì chuyển sang hồ sơ đầu tiên còn lại, chứ không để
+    // `activePatientId` trỏ vào một hồ sơ mà phiên không còn được phép đọc —
+    // `phamVi()` ở máy chủ trả 404 cho mọi màn hình khi điều đó xảy ra.
+    await set(activePatientIdState, conLai[0].patientId);
+  }
+
   set(profilesState);
 });
 
@@ -150,7 +196,7 @@ export const bookingFormState = atomWithReset<{
 }>({});
 
 /**
- * Lịch hẹn, số thứ tự, lượt khám, đơn thuốc, hoá đơn — tất cả khoá theo hồ sơ.
+ * Lịch hẹn, số thứ tự, lượt khám, đơn thuốc — tất cả khoá theo hồ sơ.
  *
  * Khoá nhận `null` nghĩa là "chưa chọn hồ sơ nào", và khi đó atom trả về rỗng
  * **mà không gọi API**. Đây không phải tiện nghi: hook của React không đặt
@@ -158,11 +204,16 @@ export const bookingFormState = atomWithReset<{
  * Nếu atom đòi một `number`, trang buộc phải bịa ra một mã bệnh nhân giả
  * (`patientId ?? 0`) và đi hỏi dữ liệu của một người không tồn tại — máy chủ
  * thật sẽ trả 404 cho mọi người dùng chưa liên kết.
+ *
+ * Mỗi atom đi qua `nuot401`: phiên hết hạn giữa chừng thì màn hình về trạng
+ * thái "chưa liên kết" thay vì rơi vào error boundary.
  */
 export const appointmentsState = atomFamily((patientId: number | null) =>
   atomWithRefresh(
     async (): Promise<Appointment[]> =>
-      patientId === null ? [] : api.appointments({ patientId }),
+      patientId === null
+        ? []
+        : nuot401([], () => api.appointments({ patientId })),
   ),
 );
 
@@ -178,37 +229,72 @@ export const appointmentByIdState = atomFamily(
   ({ id, patientId }: { id: number; patientId: number | null }) =>
     atomWithRefresh(
       async (): Promise<Appointment | null> =>
-        patientId === null ? null : api.appointment({ id, patientId }),
+        patientId === null
+          ? null
+          : nuot401(null, () => api.appointment({ id, patientId })),
     ),
   (a, b) => a.id === b.id && a.patientId === b.patientId,
 );
 
 export const queueState = atomFamily((patientId: number | null) =>
-  atomWithRefresh(async () =>
-    patientId === null ? null : api.queue({ patientId }),
+  atomWithRefresh(
+    async (): Promise<QueueStatus | null> =>
+      patientId === null
+        ? null
+        : nuot401<QueueStatus | null>(null, () => api.queue({ patientId })),
   ),
 );
 
 export const visitsState = atomFamily((patientId: number | null) =>
   atom(
     async (): Promise<VisitSummary[]> =>
-      patientId === null ? [] : api.visits({ patientId }),
+      patientId === null ? [] : nuot401([], () => api.visits({ patientId })),
   ),
+);
+
+/**
+ * Chi tiết một lượt khám — bốn nhóm dữ liệu lâm sàng.
+ *
+ * Khoá theo CẢ `visitId` và `patientId`, cùng lý do đã ghi cho
+ * `appointmentByIdState`: máy chủ đối chiếu `patient_id` ở mọi tuyến đọc, nên
+ * cùng một `visitId` dưới hai hồ sơ khác nhau là hai câu hỏi khác nhau — và
+ * chuyển hồ sơ người thân không được thấy dữ liệu của hồ sơ trước.
+ *
+ * KHÔNG nuốt lỗi thành giá trị rỗng: một màn bệnh án trắng trơn trông y hệt
+ * "lượt khám này không có gì", mà hai chuyện ấy khác nhau hoàn toàn. `nuot401`
+ * chỉ nuốt 401; mọi mã khác nổi lên cho `RouteError` của route con bắt.
+ */
+export const visitDetailState = atomFamily(
+  ({ id, patientId }: { id: number; patientId: number | null }) =>
+    atom(
+      async (): Promise<ChiTietLuotKham | null> =>
+        patientId === null ? null : api.visitDetail({ id, patientId }),
+    ),
+  (a, b) => a.id === b.id && a.patientId === b.patientId,
 );
 
 export const prescriptionsState = atomFamily((patientId: number | null) =>
   atom(
     async (): Promise<PrescriptionSummary[]> =>
-      patientId === null ? [] : api.prescriptions({ patientId }),
+      patientId === null
+        ? []
+        : nuot401([], () => api.prescriptions({ patientId })),
   ),
 );
 
-export const invoicesState = atomFamily((patientId: number | null) =>
-  atom(
-    async (): Promise<InvoiceSummary[]> =>
-      patientId === null ? [] : api.invoices({ patientId }),
-  ),
-);
+/*
+ * KHÔNG CÒN `invoicesState`.
+ *
+ * `GET /patient-app/invoices` và `GET /patient-app/invoices/:id/qr` đã bị RÚT
+ * khỏi `emr-api` ngày 29/08/2026: chúng gọi `modules/payment/`, mô-đun đã đi
+ * theo dịch vụ tài chính cùng mười tám bảng tiền. Atom này vẫn được Trang chủ
+ * đọc VÔ ĐIỀU KIỆN sau đó, nên mọi người bệnh đã liên kết mở app là gặp 404
+ * toàn màn hình — `ErrorBoundary` ở route gốc thay luôn cả `<Layout/>`.
+ *
+ * `api.invoices()` / `api.invoiceQr()` vẫn còn trong hợp đồng để lúc dịch vụ
+ * tài chính mở tuyến nội bộ thì dựng lại được, nhưng KHÔNG màn hình nào được
+ * gọi tới chúng cho tới lúc đó.
+ */
 
 /**
  * Linh tinh

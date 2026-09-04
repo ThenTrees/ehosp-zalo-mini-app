@@ -17,10 +17,13 @@ describe("biến môi trường phải vào được bundle", () => {
   it("vite.config.mts nhúng thẳng từng biến bằng define", () => {
     expect(viteConfigSource).toContain("loadEnv");
     expect(viteConfigSource).toContain(
-      '"import.meta.env.VITE_API_BASE_URL": JSON.stringify'
+      '"import.meta.env.VITE_API_BASE_URL": JSON.stringify',
     );
     expect(viteConfigSource).toContain(
-      '"import.meta.env.VITE_USE_FAKE": JSON.stringify'
+      '"import.meta.env.VITE_USE_FAKE": JSON.stringify',
+    );
+    expect(viteConfigSource).toContain(
+      '"import.meta.env.VITE_ZALO_PHONE_GIA": JSON.stringify',
     );
   });
 
@@ -28,6 +31,7 @@ describe("biến môi trường phải vào được bundle", () => {
     // `define` thay thế theo văn bản, nên chuỗi đầy đủ phải có mặt trong mã.
     expect(indexSource).toContain("import.meta.env.VITE_API_BASE_URL");
     expect(indexSource).toContain("import.meta.env.VITE_USE_FAKE");
+    expect(indexSource).toContain("import.meta.env.VITE_ZALO_PHONE_GIA");
   });
 
   it("services/index.ts KHÔNG truyền cả object import.meta.env", () => {

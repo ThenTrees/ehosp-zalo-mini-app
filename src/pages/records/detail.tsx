@@ -20,10 +20,18 @@ import {
   customTitleState,
   departmentNameState,
   prescriptionsState,
+  visitDetailState,
   visitsState,
 } from "@/state";
 import { formatIsoDateLong } from "@/utils/format";
 import PrescriptionCard from "./prescription-card";
+import {
+  BangKeSection,
+  ChanDoanSection,
+  TaiLieuSection,
+  DonThuocSection,
+  XetNghiemSection,
+} from "./clinical-sections";
 import type { VisitSummary } from "@/types";
 
 /**
@@ -45,15 +53,20 @@ export default function RecordDetailPage() {
   return <Body visitId={Number(visitId)} patientId={patientId} />;
 }
 
-function Body({
-  visitId,
-  patientId,
-}: {
-  visitId: number;
-  patientId: number;
-}) {
+function Body({ visitId, patientId }: { visitId: number; patientId: number }) {
   const visits = useAtomValue(visitsState(patientId));
   const prescriptions = useAtomValue(prescriptionsState(patientId));
+  /*
+   * Đọc theo `visitId` TRÊN URL, không theo `visit.id` đã lọc — hook không đặt
+   * sau một điều kiện được, mà `visit` thì chỉ tính ra ở dưới. Nghĩa là gõ tay
+   * một id không thuộc mình VẪN gửi một lời gọi đi.
+   *
+   * Điều đó không sao, và chỗ chốt nằm đúng chỗ nó phải nằm: máy chủ lọc
+   * `patient_id` ngay trong câu SQL của `chiTietLuotKham()` và trả 404. Nhánh
+   * `!visit` bên dưới chỉ là phép lịch sự phía máy khách, KHÔNG phải chốt an
+   * ninh — đừng ai gỡ chốt máy chủ vì thấy nó ở đây.
+   */
+  const chiTiet = useAtomValue(visitDetailState({ id: visitId, patientId }));
   const departmentName = useAtomValue(departmentNameState);
   const setTitle = useSetAtom(customTitleState);
 
@@ -77,37 +90,42 @@ function Body({
     );
   }
 
-  const ofThisVisit = prescriptions.filter((prescription) => prescription.visitId === visit.id);
+  const ofThisVisit = prescriptions.filter(
+    (prescription) => prescription.visitId === visit.id,
+  );
 
   return (
     <div className="space-y-6 p-4">
-      <VisitCard visit={visit} departmentName={departmentName(visit.departmentId)} />
+      <VisitCard
+        visit={visit}
+        departmentName={departmentName(visit.departmentId)}
+      />
 
-      <div className="space-y-3">
-        <SectionHeader title="Đơn thuốc của lần khám này" />
-        {ofThisVisit.length === 0 ? (
-          <Card>
-            <p className="text-sm text-ink-muted">
-              Lần khám này không có đơn thuốc nào.
-            </p>
-          </Card>
-        ) : (
-          ofThisVisit.map((prescription) => <PrescriptionCard key={prescription.id} prescription={prescription} />)
-        )}
-      </div>
+      {chiTiet ? (
+        <>
+          <ChanDoanSection d={chiTiet} />
+          <DonThuocSection d={chiTiet} patientId={patientId} />
+          <XetNghiemSection d={chiTiet} />
+          <BangKeSection d={chiTiet} />
+          <TaiLieuSection d={chiTiet} patientId={patientId} />
+        </>
+      ) : null}
 
-      <Card className="flex gap-3">
-        <InfoIcon
-          width={20}
-          height={20}
-          className="mt-0.5 shrink-0 text-primary-ink"
-        />
-        <p className="text-sm text-ink-muted">
-          Chẩn đoán, kết quả xét nghiệm và tên thuốc của lần khám này xem tại Sổ
-          sức khoẻ điện tử trên VNeID, hoặc hỏi tại quầy và đọc mã lượt khám ở
-          trên.
-        </p>
-      </Card>
+      {/*
+        HAI KHỐI ĐÃ GỠ Ở ĐÂY, ngày 2026-09-03:
+
+        · "Đơn thuốc của lần khám này" dựng từ `PrescriptionSummary` — nó chỉ có
+          mã đơn, ngày kê và trạng thái phát. `DonThuocSection` bên trên nay bày
+          đúng những đơn ấy KÈM tên thuốc, hàm lượng, liều và lời dặn. Giữ cả
+          hai là in hai lần cùng một đơn, lần sau nghèo hơn lần trước.
+
+        · Dải "chẩn đoán, kết quả xét nghiệm và tên thuốc xem tại VNeID" — câu ấy
+          đứng NGAY DƯỚI chính chẩn đoán, kết quả và tên thuốc mà nó bảo là không
+          có. Nó đúng cho tới hôm nay và sai kể từ hôm nay.
+
+        Bản có giá trị PHÁP LÝ vẫn ở VNeID, và câu ấy nay nằm một lần duy nhất ở
+        cuối màn Lịch sử khám — nơi nó còn đúng.
+      */}
     </div>
   );
 }
