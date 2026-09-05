@@ -193,6 +193,10 @@ export const bookingFormState = atomWithReset<{
   departmentId?: number;
   date?: string;
   session?: Session;
+  /**
+   * Lý do đi khám, người bệnh tự viết. KHÔNG bắt buộc — xem lý lẽ ở bước 3.
+   */
+  reason?: string;
 }>({});
 
 /**

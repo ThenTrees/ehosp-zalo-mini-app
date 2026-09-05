@@ -269,6 +269,7 @@ export function createFakeApi(): PatientAppApi {
         session: input.session,
         status: "Scheduled",
         patientConfirmed: false,
+        lyDo: input.reason?.trim() || null,
       };
       appointments.push(appointment);
       return { ...appointment };

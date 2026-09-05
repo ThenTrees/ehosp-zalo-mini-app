@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAtomValue, useSetAtom } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { useResetAtom } from "jotai/utils";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -18,7 +18,8 @@ import { formatIsoDateLong, sessionName } from "@/utils/format";
 
 export default function Step3({ onBack }: { onBack: () => void }) {
   const navigate = useNavigate();
-  const form = useAtomValue(bookingFormState);
+  // `useAtom` chứ không `useAtomValue`: bước này nay GHI vào form (ô lý do).
+  const [form, setForm] = useAtom(bookingFormState);
   const resetForm = useResetAtom(bookingFormState);
   const departments = useAtomValue(departmentsState);
   const profile = useAtomValue(activeProfileState);
@@ -42,6 +43,7 @@ export default function Step3({ onBack }: { onBack: () => void }) {
         departmentId: form.departmentId,
         date: form.date,
         session: form.session,
+        reason: form.reason,
       });
       refreshAppointments();
       resetForm();
@@ -81,6 +83,40 @@ export default function Step3({ onBack }: { onBack: () => void }) {
           value={form.session ? sessionName(form.session) : "—"}
           isLast
         />
+      </Card>
+
+      {/*
+        LÝ DO ĐI KHÁM — KHÔNG BẮT BUỘC, và đó là một quyết định chứ không phải
+        sự lười.
+
+        Bắt buộc một ô tự luận trên điện thoại chỉ sinh ra hàng loạt dòng "kham
+        benh": người ta gõ cho qua để bấm được nút. Tệ hơn để trống, vì ô trống
+        thì buồng khám biết là chưa hỏi, còn một dòng "kham benh" trông như đã
+        hỏi rồi.
+
+        Gợi ý viết gì thì đặt trong `placeholder` chứ không đặt thành nhãn dài:
+        người bệnh đang đứng, đọc trên màn hình nhỏ.
+      */}
+      <Card>
+        <label
+          htmlFor="ly-do"
+          className="block text-sm font-medium text-ink"
+        >
+          Lý do đi khám{" "}
+          <span className="font-normal text-ink-muted">(không bắt buộc)</span>
+        </label>
+        <textarea
+          id="ly-do"
+          rows={3}
+          maxLength={500}
+          value={form.reason ?? ""}
+          onChange={(e) => setForm({ ...form, reason: e.target.value })}
+          placeholder="Ví dụ: ho kéo dài 5 ngày, sốt về chiều"
+          className="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-base text-ink placeholder:text-ink-muted focus:border-primary focus:outline-none"
+        />
+        <p className="mt-1 text-xs text-ink-muted">
+          Viết ngắn cũng được — bác sĩ đọc trước khi gọi vào phòng.
+        </p>
       </Card>
 
       {error && (

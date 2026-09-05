@@ -68,6 +68,13 @@ export interface Appointment {
   session: Session;
   status: AppointmentStatus;
   patientConfirmed: boolean;
+  /**
+   * Lý do đi khám người bệnh đã ghi lúc đặt. `null` khi để trống.
+   *
+   * Trả về để họ XEM LẠI được. Không có nó thì ô lý do là một cái hố: viết
+   * xong không biết máy chủ có nhận không, và lần sau sẽ gõ lại từ đầu.
+   */
+  lyDo: string | null;
 }
 
 export interface QueueStatus {
@@ -145,6 +152,11 @@ export interface CreateAppointmentInput {
   /** YYYY-MM-DD */
   date: string;
   session: Session;
+  /**
+   * Lý do đi khám. Tối đa 500 ký tự — máy chủ cắt, không từ chối.
+   * KHÔNG bắt buộc: xem lý lẽ ở `pages/booking/step3.tsx`.
+   */
+  reason?: string;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

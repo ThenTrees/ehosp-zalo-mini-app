@@ -158,7 +158,7 @@ export function createHttpApi(
      * máy chủ trả 404 "Không tìm thấy hồ sơ" — một thông báo không hề gợi ý
      * rằng lỗi nằm ở tên trường.
      */
-    createAppointment: ({ patientId, departmentId, date, session }) =>
+    createAppointment: ({ patientId, departmentId, date, session, reason }) =>
       call("/appointments", {
         method: "POST",
         body: {
@@ -166,6 +166,9 @@ export function createHttpApi(
           department_id: departmentId,
           date,
           session,
+          // Bỏ hẳn khoá khi rỗng, đừng gửi chuỗi "" — máy chủ phân biệt "không
+          // ghi lý do" với "ghi một chuỗi rỗng", và cột nhận NULL chứ không ''.
+          ...(reason?.trim() ? { reason: reason.trim() } : {}),
         },
       }),
 
