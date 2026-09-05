@@ -96,6 +96,13 @@ export interface TrangThaiLuotKham {
   moc: MocLuotKham[];
 }
 
+/** Bác sĩ của một khoa — ba trường, đúng những gì tấm bảng ở sảnh in. */
+export interface BacSi {
+  id: number;
+  hoTen: string;
+  hocVi: string | null;
+}
+
 export interface QueueStatus {
   patientId: number;
   /**
@@ -181,6 +188,14 @@ export interface CreateAppointmentInput {
    * KHÔNG bắt buộc: xem lý lẽ ở `pages/booking/step3.tsx`.
    */
   reason?: string;
+  /**
+   * Bác sĩ NGUYỆN VỌNG, không bắt buộc.
+   *
+   * ⚠ KHÔNG PHẢI MỘT CHỖ ĐÃ GIỮ. Phép kiểm sức chứa của máy chủ đếm theo KHOA,
+   * không theo bác sĩ — nên cái hẹn có thể được xếp cho bác sĩ khác lúc tiếp
+   * đón. Màn hình phải nói đúng điều đó thay vì hứa một chỗ hệ thống không giữ.
+   */
+  doctorId?: number;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

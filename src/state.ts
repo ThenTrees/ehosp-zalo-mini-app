@@ -4,6 +4,7 @@ import { api, setSessionToken } from "@/services";
 import { ApiError } from "@/services/http";
 import { clearSession, loadSession, saveSession } from "@/services/session";
 import type {
+  BacSi,
   TrangThaiLuotKham,
   ChiTietLuotKham,
   Appointment,
@@ -198,6 +199,8 @@ export const bookingFormState = atomWithReset<{
    * Lý do đi khám, người bệnh tự viết. KHÔNG bắt buộc — xem lý lẽ ở bước 3.
    */
   reason?: string;
+  /** Bác sĩ NGUYỆN VỌNG, không bắt buộc — xem lý lẽ ở bước 3. */
+  doctorId?: number;
 }>({});
 
 /**
@@ -265,6 +268,15 @@ export const trangThaiLuotState = atomFamily(
         : nuot401<TrangThaiLuotKham | null>(null,
           () => api.trangThaiLuotKham({ id: visitId, patientId }))),
   (a, b) => a.visitId === b.visitId && a.patientId === b.patientId,
+);
+
+/**
+ * Bác sĩ của một khoa. Tuyến công khai nên không khoá theo hồ sơ, và nạp lười:
+ * chỉ hỏi khi người bệnh đã chọn khoa ở bước 1.
+ */
+export const bacSiCuaKhoaState = atomFamily((departmentId: number | null) =>
+  atomWithRefresh(async (): Promise<BacSi[]> =>
+    departmentId === null ? [] : api.bacSiCuaKhoa({ departmentId })),
 );
 
 export const visitsState = atomFamily((patientId: number | null) =>

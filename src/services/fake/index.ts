@@ -120,6 +120,14 @@ export function createFakeApi(): PatientAppApi {
      * bản giả mà mọi chặng đều xanh thì không ai thấy được màn hình lúc đang
      * chờ — mà đó mới là lúc người bệnh mở app nhiều nhất.
      */
+    bacSiCuaKhoa: async () => {
+      await delay();
+      return [
+        { id: 1, hoTen: "Nguyễn Trọng Nghĩa", hocVi: "BSCKI" },
+        { id: 2, hoTen: "Trần Thị Mỹ Hạnh", hocVi: "ThS.BS" },
+      ];
+    },
+
     veCheckIn: async () => {
       await delay();
       return { ve: "ve-checkin-gia", hanMs: 15 * 60_000 };

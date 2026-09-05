@@ -13,6 +13,7 @@ import {
   appointmentsState,
   bookingFormState,
   departmentsState,
+  bacSiCuaKhoaState,
 } from "@/state";
 import { formatIsoDateLong, sessionName } from "@/utils/format";
 
@@ -29,6 +30,7 @@ export default function Step3({ onBack }: { onBack: () => void }) {
   const [error, setError] = useState("");
 
   const department = departments.find((d) => d.id === form.departmentId);
+  const bacSi = useAtomValue(bacSiCuaKhoaState(form.departmentId ?? null));
 
   async function confirm() {
     if (!patientId || !form.departmentId || !form.date || !form.session) {
@@ -44,6 +46,7 @@ export default function Step3({ onBack }: { onBack: () => void }) {
         date: form.date,
         session: form.session,
         reason: form.reason,
+        doctorId: form.doctorId,
       });
       refreshAppointments();
       resetForm();
@@ -84,6 +87,50 @@ export default function Step3({ onBack }: { onBack: () => void }) {
           isLast
         />
       </Card>
+
+      {/*
+        BÁC SĨ MONG MUỐN — KHÔNG BẮT BUỘC, VÀ KHÔNG PHẢI MỘT CHỖ ĐÃ GIỮ.
+
+        Phép kiểm sức chứa của máy chủ đếm theo KHOA, không theo bác sĩ. Nên
+        cái hẹn ghi tên bác sĩ vẫn có thể được xếp cho người khác lúc tiếp đón,
+        và câu chú dưới ô nói đúng điều đó. Viết "đã đặt bác sĩ X" ở đây là hứa
+        một chỗ hệ thống không giữ — người bệnh tới nơi, gặp người khác, và họ
+        nhớ lời hứa chứ không nhớ dòng chữ nhỏ.
+
+        Mặc định "Bác sĩ nào cũng được": phần lớn người bệnh không có nguyện
+        vọng, và bắt họ chọn một cái tên lạ là thêm một bước không sinh ra gì.
+      */}
+      {bacSi.length > 0 && (
+        <Card>
+          <label htmlFor="bac-si" className="block text-sm font-medium text-ink">
+            Bác sĩ mong muốn{" "}
+            <span className="font-normal text-ink-muted">(không bắt buộc)</span>
+          </label>
+          <select
+            id="bac-si"
+            value={form.doctorId ?? ""}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                doctorId: e.target.value ? Number(e.target.value) : undefined,
+              })
+            }
+            className="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-base text-ink"
+          >
+            <option value="">Bác sĩ nào cũng được</option>
+            {bacSi.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.hocVi ? `${b.hocVi} ` : ""}
+                {b.hoTen}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-ink-muted">
+            Phòng khám sẽ cố gắng xếp theo nguyện vọng, nhưng chưa chắc chắn —
+            lịch của bác sĩ có thể thay đổi trong ngày.
+          </p>
+        </Card>
+      )}
 
       {/*
         LÝ DO ĐI KHÁM — KHÔNG BẮT BUỘC, và đó là một quyết định chứ không phải

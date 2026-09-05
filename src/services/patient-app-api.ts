@@ -1,5 +1,6 @@
 import { buildUrl, request } from "./http";
 import type {
+  BacSi,
   TrangThaiLuotKham,
   VeTaiLieu,
   ChiTietLuotKham,
@@ -90,6 +91,8 @@ export interface PatientAppApi {
    * Vé DÙNG MỘT LẦN, hạn 15 phút. Mở lại màn hình là đúc vé mới và vé cũ chết
    * ngay, nên một ảnh chụp cũ không quét được.
    */
+  /** Bác sĩ của một khoa, để người bệnh chọn khi đặt hẹn. Tuyến công khai. */
+  bacSiCuaKhoa(params: { departmentId: number }): Promise<BacSi[]>;
   veCheckIn(params: { id: number; patientId: number }): Promise<{
     ve: string; hanMs: number;
   }>;
@@ -172,7 +175,7 @@ export function createHttpApi(
      * máy chủ trả 404 "Không tìm thấy hồ sơ" — một thông báo không hề gợi ý
      * rằng lỗi nằm ở tên trường.
      */
-    createAppointment: ({ patientId, departmentId, date, session, reason }) =>
+    createAppointment: ({ patientId, departmentId, date, session, reason, doctorId }) =>
       call("/appointments", {
         method: "POST",
         body: {
@@ -183,6 +186,7 @@ export function createHttpApi(
           // Bỏ hẳn khoá khi rỗng, đừng gửi chuỗi "" — máy chủ phân biệt "không
           // ghi lý do" với "ghi một chuỗi rỗng", và cột nhận NULL chứ không ''.
           ...(reason?.trim() ? { reason: reason.trim() } : {}),
+          ...(doctorId ? { doctor_id: doctorId } : {}),
         },
       }),
 
@@ -252,6 +256,13 @@ export function createHttpApi(
      * nginx hay dấu vết OpenTelemetry đều là vé ĐÃ CHÁY.
      */
     taiLieuUrl: ({ id, ve }) => buildUrl(baseUrl, `/tai-lieu/${id}/tep`, { ve }),
+
+    bacSiCuaKhoa: async ({ departmentId }) =>
+      unwrap(
+        await call<Wrapped<BacSi>>(`/departments/${departmentId}/bac-si`, {
+          anonymous: true,
+        }),
+      ),
 
     veCheckIn: ({ id, patientId }) =>
       call(`/appointments/${id}/ve-checkin`, {
