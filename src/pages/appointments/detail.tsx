@@ -6,6 +6,7 @@ import { api } from "@/services";
 import LinkRequired from "@/components/link-required";
 import { Button } from "@/components/button";
 import { CalendarIcon, ClockIcon } from "@/components/icons";
+import { MaCheckIn } from "@/components/ma-check-in";
 import {
   Card,
   EmptyState,
@@ -87,19 +88,38 @@ function Body({ id, patientId }: { id: number; patientId: number }) {
       <AppointmentCard appointment={appointment} />
 
       {/*
-        Mã hẹn là thứ người bệnh đọc cho nhân viên tiếp đón. Nó được cỡ chữ lớn
-        và giãn ký tự để đọc to không nhầm, nhưng chỉ nằm ở màn chi tiết chứ
-        không rải ra danh sách.
+        MÃ QR THAY CHO ĐỌC MÃ BẰNG MIỆNG.
+        
+        Ô chữ "HK2026000003" trước đây bắt người bệnh đọc mười hai ký tự cho
+        nhân viên gõ lại — ba chỗ hỏng: đọc nhầm một ký tự, gõ nhầm một ký tự,
+        và giọng địa phương nghe không rõ.
+
+        Mã chữ vẫn giữ, cỡ nhỏ, ĐẶT DƯỚI: máy quét hỏng là chuyện xảy ra, và
+        lúc ấy đọc bằng miệng vẫn phải là đường đi được. Bỏ hẳn nó là dựng một
+        tính năng không có đường lui.
+
+        Chỉ hiện mã QR khi cái hẹn còn CHỜ TIẾP ĐÓN — một mã quét được cho cái
+        hẹn đã huỷ là mời nhân viên quét rồi nhận lỗi.
       */}
       <Card className="text-center">
-        <div className="text-2xs uppercase tracking-wide text-ink-muted">
+        {isOpen ? (
+          <MaCheckIn henId={appointment.id} patientId={patientId} />
+        ) : null}
+        <div
+          className={
+            "text-2xs uppercase tracking-wide text-ink-muted" +
+            (isOpen ? " mt-4" : "")
+          }
+        >
           Mã lịch hẹn
         </div>
-        <div className="mt-1 font-mono text-2xl font-bold tracking-widest text-primary-ink">
+        <div className="mt-1 font-mono text-lg font-bold tracking-widest text-primary-ink">
           {appointment.appointmentCode}
         </div>
         <p className="mt-2 text-sm text-ink-muted">
-          Đọc mã này cho nhân viên tại quầy tiếp đón để nhận số thứ tự.
+          {isOpen
+            ? "Máy quét hỏng thì đọc mã này cho nhân viên tiếp đón."
+            : "Mã của lịch hẹn này, để tra lại khi cần."}
         </p>
       </Card>
 

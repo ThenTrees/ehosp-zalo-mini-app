@@ -84,6 +84,15 @@ export interface PatientAppApi {
    * đường không có phiên là mời một lỗi IDOR — đổi số là đọc hồ sơ người khác.
    */
   taiLieuUrl(params: { id: number; ve: string }): string;
+  /**
+   * Đúc vé check-in — nội dung mã QR chìa ở quầy.
+   *
+   * Vé DÙNG MỘT LẦN, hạn 15 phút. Mở lại màn hình là đúc vé mới và vé cũ chết
+   * ngay, nên một ảnh chụp cũ không quét được.
+   */
+  veCheckIn(params: { id: number; patientId: number }): Promise<{
+    ve: string; hanMs: number;
+  }>;
   /** Dòng tiến độ của một lượt khám — "giờ tới đâu rồi". */
   trangThaiLuotKham(params: {
     id: number; patientId: number;
@@ -243,6 +252,12 @@ export function createHttpApi(
      * nginx hay dấu vết OpenTelemetry đều là vé ĐÃ CHÁY.
      */
     taiLieuUrl: ({ id, ve }) => buildUrl(baseUrl, `/tai-lieu/${id}/tep`, { ve }),
+
+    veCheckIn: ({ id, patientId }) =>
+      call(`/appointments/${id}/ve-checkin`, {
+        method: "POST",
+        body: { patient_id: patientId },
+      }),
 
     trangThaiLuotKham: ({ id, patientId }) =>
       call<TrangThaiLuotKham>(`/visits/${id}/trang-thai`, {
