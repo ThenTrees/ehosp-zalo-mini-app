@@ -3,6 +3,7 @@ import LinkRequired from "@/components/link-required";
 import { Button } from "@/components/button";
 import { InfoIcon, RefreshIcon, TicketIcon } from "@/components/icons";
 import { Card, EmptyState } from "@/components/ui";
+import { TienDoLuotKham } from "@/components/tien-do-luot-kham";
 import { activePatientIdState, queueState } from "@/state";
 
 export default function QueuePage() {
@@ -69,6 +70,13 @@ export default function QueuePage() {
           last
         />
       </Card>
+
+      {/*
+        Dòng tiến độ đứng NGAY DƯỚI thẻ số thứ tự và TRÊN nút làm mới: con số
+        trả lời "bao giờ tới lượt", dòng này trả lời "đang chờ cái gì" — hai
+        câu người bệnh hỏi nhân viên nhiều nhất khi ngồi ở hành lang.
+      */}
+      <TienDoLuotKham visitId={queue.visitId} patientId={patientId} />
 
       <Button variant="secondary" onClick={() => refresh()}>
         <RefreshIcon width={20} height={20} />

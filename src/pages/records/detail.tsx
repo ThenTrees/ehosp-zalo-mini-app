@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useAtomValue, useSetAtom } from "jotai";
 import { useParams } from "react-router-dom";
 import LinkRequired from "@/components/link-required";
+import { TienDoLuotKham } from "@/components/tien-do-luot-kham";
 import {
   CalendarIcon,
   ClipboardIcon,
@@ -105,6 +106,11 @@ function Body({ visitId, patientId }: { visitId: number; patientId: number }) {
 
       {chiTiet ? (
         <>
+          {/*
+            Cũng hiện ở lượt khám CŨ: người bệnh mở lại để biết lần ấy đã làm
+            những gì, và dòng tiến độ tóm tắt điều đó gọn hơn bốn khối bên dưới.
+          */}
+          <TienDoLuotKham visitId={visitId} patientId={patientId} />
           <ChanDoanSection d={chiTiet} />
           {/*
             Sinh hiệu và lời dặn đứng NGAY SAU chẩn đoán, TRƯỚC đơn thuốc: đó là

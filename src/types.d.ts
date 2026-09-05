@@ -77,8 +77,32 @@ export interface Appointment {
   lyDo: string | null;
 }
 
+/** Một chặng trong dòng tiến độ của lượt khám. */
+export interface MocLuotKham {
+  ma: string;
+  ten: string;
+  xong: boolean;
+  /** "3/5" khi chặng ấy đếm được; `null` khi nó chỉ có xong/chưa. */
+  dem: string | null;
+  luc: string | null;
+}
+
+export interface TrangThaiLuotKham {
+  visitId: number;
+  visitCode: string;
+  visitDate: string | null;
+  trangThai: string;
+  tenTrangThai: string;
+  moc: MocLuotKham[];
+}
+
 export interface QueueStatus {
   patientId: number;
+  /**
+   * Lượt khám hôm nay, `null` khi chưa tới quầy. Có nó thì màn hàng chờ nối
+   * được sang dòng tiến độ mà không phải đoán.
+   */
+  visitId: number | null;
   /** Số thứ tự của tôi hôm nay; null khi chưa vào hàng đợi. */
   myNumber: number | null;
   /** Số đang được gọi tại phòng. */

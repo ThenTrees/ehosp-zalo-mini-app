@@ -1,5 +1,6 @@
 import { buildUrl, request } from "./http";
 import type {
+  TrangThaiLuotKham,
   VeTaiLieu,
   ChiTietLuotKham,
   DangNhapInput,
@@ -83,6 +84,10 @@ export interface PatientAppApi {
    * đường không có phiên là mời một lỗi IDOR — đổi số là đọc hồ sơ người khác.
    */
   taiLieuUrl(params: { id: number; ve: string }): string;
+  /** Dòng tiến độ của một lượt khám — "giờ tới đâu rồi". */
+  trangThaiLuotKham(params: {
+    id: number; patientId: number;
+  }): Promise<TrangThaiLuotKham>;
   prescriptions(params: { patientId: number }): Promise<PrescriptionSummary[]>;
   invoices(params: { patientId: number }): Promise<InvoiceSummary[]>;
   invoiceQr(id: number): Promise<VietQrPayload>;
@@ -238,6 +243,11 @@ export function createHttpApi(
      * nginx hay dấu vết OpenTelemetry đều là vé ĐÃ CHÁY.
      */
     taiLieuUrl: ({ id, ve }) => buildUrl(baseUrl, `/tai-lieu/${id}/tep`, { ve }),
+
+    trangThaiLuotKham: ({ id, patientId }) =>
+      call<TrangThaiLuotKham>(`/visits/${id}/trang-thai`, {
+        query: { patient_id: patientId },
+      }),
 
     visitDetail: ({ id, patientId }) =>
       call<ChiTietLuotKham>(`/visits/${id}`, {

@@ -4,6 +4,7 @@ import { api, setSessionToken } from "@/services";
 import { ApiError } from "@/services/http";
 import { clearSession, loadSession, saveSession } from "@/services/session";
 import type {
+  TrangThaiLuotKham,
   ChiTietLuotKham,
   Appointment,
   PatientProfile,
@@ -247,6 +248,23 @@ export const queueState = atomFamily((patientId: number | null) =>
         ? null
         : nuot401<QueueStatus | null>(null, () => api.queue({ patientId })),
   ),
+);
+
+/**
+ * Dòng tiến độ của MỘT lượt khám.
+ *
+ * Khoá theo cả `visitId` lẫn `patientId`, cùng lý lẽ với `visitDetailState`:
+ * đổi hồ sơ đang xem mà bộ nhớ đệm chỉ khoá theo lượt khám thì người dùng thấy
+ * tiến độ của hồ sơ trước.
+ */
+export const trangThaiLuotState = atomFamily(
+  ({ visitId, patientId }: { visitId: number | null; patientId: number | null }) =>
+    atomWithRefresh(async (): Promise<TrangThaiLuotKham | null> =>
+      visitId === null || patientId === null
+        ? null
+        : nuot401<TrangThaiLuotKham | null>(null,
+          () => api.trangThaiLuotKham({ id: visitId, patientId }))),
+  (a, b) => a.visitId === b.visitId && a.patientId === b.patientId,
 );
 
 export const visitsState = atomFamily((patientId: number | null) =>

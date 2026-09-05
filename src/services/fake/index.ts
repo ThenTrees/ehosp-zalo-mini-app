@@ -115,6 +115,31 @@ export function createFakeApi(): PatientAppApi {
       await delay();
       return { soPhienDaThuHoi: 0 };
     },
+    /*
+     * Bản giả cố ý để chặng CĐHA CHƯA xong (1/2) và chặng cuối chưa xong: một
+     * bản giả mà mọi chặng đều xanh thì không ai thấy được màn hình lúc đang
+     * chờ — mà đó mới là lúc người bệnh mở app nhiều nhất.
+     */
+    trangThaiLuotKham: async ({ id }) => {
+      await delay();
+      return {
+        visitId: id,
+        visitCode: `VK${id}`,
+        visitDate: "2026-09-05",
+        trangThai: "IN_PROGRESS",
+        tenTrangThai: "Đang khám",
+        moc: [
+          { ma: "TIEP_DON", ten: "Đã tiếp đón", xong: true, dem: null,
+            luc: "2026-09-05T07:12:00" },
+          { ma: "XN", ten: "Kết quả xét nghiệm", xong: true, dem: "3/3",
+            luc: "2026-09-05T08:41:00" },
+          { ma: "CDHA", ten: "Kết quả chẩn đoán hình ảnh", xong: false, dem: "1/2",
+            luc: "2026-09-05T09:02:00" },
+          { ma: "XONG", ten: "Đã khám xong", xong: false, dem: null, luc: null },
+        ],
+      };
+    },
+
     visitDetail: async ({ id }) => {
       await delay();
       return {
@@ -317,6 +342,7 @@ export function createFakeApi(): PatientAppApi {
       assertScope(patientId);
       return {
         patientId,
+        visitId: 9001,
         myNumber: 27,
         currentNumber: 21,
         roomName: "Phòng khám số 2",
