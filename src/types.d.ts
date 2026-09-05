@@ -24,7 +24,22 @@ export type VisitStatus = "WAITING" | "IN_PROGRESS" | "DONE" | "CANCELLED";
  * Không có "DRAFT": máy chủ lọc đơn nháp ra khỏi kết quả trước khi trả về —
  * xem `tomTatDonThuoc()` trong `modules/patient-app/service.ts`.
  */
-export type PrescriptionStatus = "ISSUED" | "DISPENSED" | "CANCELLED";
+/**
+ * Trạng thái đơn thuốc.
+ *
+ * ⚠ PHẢI PHỦ ĐỦ danh mục `PRESCRIPTION_STATUS` của máy chủ, và `PARTIALLY_DISPENSED`
+ * từng thiếu ở đây. Dược có thể phát THIẾU một vài mặt hàng — `duoc` đặt trị ấy
+ * khi không phải mọi dòng đều phát đủ — và một trị không khai làm màn chi tiết
+ * lượt khám ném lỗi thay vì hiện đơn.
+ *
+ * `DRAFT` cố ý KHÔNG có: máy chủ lọc đơn nháp trước khi trả, và một đơn bác sĩ
+ * chưa phát hành thì người bệnh không nên thấy.
+ */
+export type PrescriptionStatus =
+  | "ISSUED"
+  | "PARTIALLY_DISPENSED"
+  | "DISPENSED"
+  | "CANCELLED";
 
 export interface PatientProfile {
   patientId: number;

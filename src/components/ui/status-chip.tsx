@@ -92,6 +92,16 @@ export function prescriptionTone(prescription: PrescriptionSummary): {
   switch (prescription.status) {
     case "ISSUED":
       return { label: "Đã kê, chờ lấy thuốc", tone: "warning" };
+    case "PARTIALLY_DISPENSED":
+      /*
+       * PHÁT THIẾU — không phải "đã phát" và cũng không phải "chờ lấy".
+       *
+       * Dược đặt trị này khi không phải mọi mặt hàng trong đơn đều phát đủ
+       * (thường vì hết hàng). Gộp nó vào "Đã phát thuốc" là nói với người bệnh
+       * rằng họ đã cầm đủ thuốc trong khi chưa — và họ sẽ không quay lại lấy
+       * phần còn thiếu.
+       */
+      return { label: "Đã phát một phần", tone: "warning" };
     case "DISPENSED":
       return { label: "Đã phát thuốc", tone: "success" };
     case "CANCELLED":
