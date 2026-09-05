@@ -71,6 +71,17 @@ const ALLOWED_FIELDS: Record<string, string[]> = {
     "soLan",
     "soNgay",
     "loiDan",
+    /*
+     * THÊM 2026-09-05 cho lịch nhắc uống thuốc. Cùng hạng với `lieu`/`soLan`
+     * đã được duyệt cho xem: đây là liều của CHÍNH người bệnh, chỉ khác ở chỗ
+     * trả về dạng SỐ thay vì chuỗi đã dựng sẵn — để máy khách khỏi phải parse
+     * lại một bản dẫn xuất.
+     */
+    "lieuSang",
+    "lieuTrua",
+    "lieuChieu",
+    "lieuToi",
+    "duongDungThat",
   ],
   DonThuocChiTiet: ["code", "issuedDate", "status", "thuoc", "taiLieuId"],
   ChiSoXetNghiem: [

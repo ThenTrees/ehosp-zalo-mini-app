@@ -1,7 +1,10 @@
 import { Card, SectionHeader } from "@/components/ui";
 import { MoTaiLieu } from "@/components/mo-tai-lieu";
 import { api } from "@/services";
+import TransitionLink from "@/components/transition-link";
+import { gomNhomNhac } from "@/utils/lich-uong-thuoc";
 import { formatIsoDateLong } from "@/utils/format";
+import type { ThuocDaKe } from "@/types";
 import type { ChiTietLuotKham } from "@/types";
 
 /**
@@ -168,6 +171,25 @@ export function DonThuocSection({
   return (
     <Card>
       <SectionHeader title="Đơn thuốc" />
+      {/*
+        LỐI VÀO LỊCH NHẮC. Đặt trong chính khối đơn thuốc, không đẩy xuống menu:
+        người bệnh nghĩ tới việc nhắc đúng lúc đang nhìn đơn, không phải lúc
+        đang tìm trong danh sách chức năng.
+
+        Chỉ hiện khi đơn CÓ thuốc uống ghi liều theo buổi — bấm vào rồi mới báo
+        "không đặt được" là bắt người ta đi một vòng để nhận lời từ chối.
+      */}
+      {gomNhomNhac(
+        d.donThuoc.reduce<ThuocDaKe[]>((a, x) => a.concat(x.thuoc), []),
+      ).length > 0 && (
+        <TransitionLink
+          to={`/nhac-thuoc/${d.visitId}`}
+          className="mb-3 flex items-center justify-between rounded-md bg-primary-soft px-3 py-2 text-sm font-medium text-primary-ink"
+        >
+          Đặt nhắc uống thuốc
+          <span aria-hidden>›</span>
+        </TransitionLink>
+      )}
       <div className="flex flex-col gap-4">
         {d.donThuoc.map((don) => (
           <div key={don.code} className="flex flex-col gap-2">

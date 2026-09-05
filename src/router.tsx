@@ -13,6 +13,7 @@ import BookingPage from "./pages/booking";
 import AppointmentsPage from "./pages/appointments";
 import AppointmentDetailPage from "./pages/appointments/detail";
 import QueuePage from "./pages/queue";
+import NhacThuocPage from "./pages/nhac-thuoc";
 
 const CHILD_ROUTES: RouteObject[] = [
   { path: "/", element: <HomePage /> },
@@ -52,6 +53,16 @@ const CHILD_ROUTES: RouteObject[] = [
     path: "/records",
     element: <RecordsPage />,
     handle: { back: true, title: "Lịch sử khám" },
+  },
+  {
+    /*
+     * Nhắc uống thuốc, khoá theo LƯỢT KHÁM chứ không theo đơn: một lượt khám
+     * có thể có nhiều đơn, và người bệnh nghĩ theo "lần khám hôm ấy" chứ không
+     * theo mã đơn.
+     */
+    path: "/nhac-thuoc/:visitId",
+    element: <NhacThuocPage />,
+    handle: { back: true, title: "Nhắc uống thuốc" },
   },
   {
     // `:visitId` là khoá chính của lượt khám, không phải mã lượt khám —

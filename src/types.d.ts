@@ -237,6 +237,26 @@ export interface ThuocDaKe {
   soLan: string | null;
   soNgay: number | null;
   loiDan: string | null;
+  /*
+   * BỐN CỘT LIỀU THEO BUỔI — nguồn sự thật cho lịch nhắc uống.
+   *
+   * `soLan` ("Sáng 1, Trưa 1, Tối 1") là bản DẪN XUẤT máy chủ tự sinh từ bốn
+   * số này. Dựng lịch thì đọc SỐ, đừng parse chuỗi ấy: parse một bản dẫn xuất
+   * là dựng nguồn sự thật thứ hai, và hai nguồn sẽ lệch nhau đúng vào hôm ai
+   * đó đổi cách sinh chuỗi.
+   *
+   * `null` = buổi ấy không uống.
+   */
+  lieuSang: number | null;
+  lieuTrua: number | null;
+  lieuChieu: number | null;
+  lieuToi: number | null;
+  /**
+   * Đường dùng THẬT (cột `route`), khác `duongDung` vốn NULL ở gần hết dữ liệu.
+   * PHẢI kiểm trường này trước khi đề nghị nhắc uống — nhắc "uống" một tuýp
+   * thuốc bôi là sai kiểu nguy hiểm, không phải kiểu buồn cười.
+   */
+  duongDungThat: string | null;
 }
 
 export interface DonThuocChiTiet {
