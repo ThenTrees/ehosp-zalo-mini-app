@@ -64,12 +64,17 @@ export function SinhHieuSection({ d }: { d: ChiTietLuotKham }) {
   const s = d.sinhHieu;
   if (!s) return null;
 
+  /*
+   * HUYẾT ÁP: hiện được cả khi chỉ đo một vế.
+   *
+   * Bản đầu bỏ hẳn dòng khi `huyetApTamThu` null, nên một lượt chỉ đo tâm
+   * trương thì số ấy biến mất — có đo mà không hiện. Dấu gạch giữ đúng vị trí
+   * của vế thiếu để người đọc thấy ngay đâu là tâm thu, đâu là tâm trương.
+   */
   const ha =
-    s.huyetApTamThu !== null && s.huyetApTamTruong !== null
-      ? `${s.huyetApTamThu}/${s.huyetApTamTruong}`
-      : s.huyetApTamThu !== null
-        ? String(s.huyetApTamThu)
-        : null;
+    s.huyetApTamThu === null && s.huyetApTamTruong === null
+      ? null
+      : `${s.huyetApTamThu ?? "—"}/${s.huyetApTamTruong ?? "—"}`;
 
   const o: { nhan: string; tri: string | null; donVi: string }[] = [
     { nhan: "Huyết áp", tri: ha, donVi: "mmHg" },
@@ -184,7 +189,12 @@ export function DonThuocSection({
       ).length > 0 && (
         <TransitionLink
           to={`/nhac-thuoc/${d.visitId}`}
-          className="mb-3 flex items-center justify-between rounded-md bg-primary-soft px-3 py-2 text-sm font-medium text-primary-ink"
+          /*
+            `min-h-[44px]` — vùng bấm tối thiểu 44px theo hướng dẫn của cả Apple
+            lẫn WCAG 2.5.8. `py-2` cho ra 36px, đủ nhỏ để người nhiều tuổi hoặc
+            tay run bấm trượt sang thẻ bên dưới.
+          */
+          className="mb-3 flex min-h-[44px] items-center justify-between rounded-md bg-primary-soft px-3 py-2.5 text-sm font-medium text-primary-ink"
         >
           Đặt nhắc uống thuốc
           <span aria-hidden>›</span>
@@ -374,11 +384,21 @@ export function TaiLieuSection({
       <SectionHeader title="Giấy tờ của lần khám này" />
       <div className="flex flex-col">
         {d.taiLieu.map((t) => (
-          <MoTaiLieu
+          /*
+            ĐƯỜNG KẺ CHUYỂN RA THẺ BỌC. `last:border-0` áp cho phần tử là con
+            CUỐI của cha nó; sau khi đổi <a> thành <MoTaiLieu>, cái <button>
+            mang lớp ấy nằm trong một <span> bọc và LUÔN là con cuối, nên mọi
+            hàng đều mất đường kẻ. Đặt kẻ ở thẻ bọc là chỗ `:last-child` còn
+            đúng nghĩa.
+          */
+          <div
             key={t.id}
+            className="border-b border-line last:border-0"
+          >
+          <MoTaiLieu
             id={t.id}
             patientId={patientId}
-            className="flex w-full items-baseline justify-between gap-3 border-b border-line py-2.5 text-left last:border-0"
+            className="flex w-full items-baseline justify-between gap-3 py-2.5 text-left"
           >
             <span className="min-w-0 flex-1 text-ink">
               {TEN_LOAI[t.loai] ?? t.tenHienThi ?? t.loai}
@@ -392,6 +412,7 @@ export function TaiLieuSection({
               Mở PDF{t.soByte ? ` · ${coKB(t.soByte)}` : ""}
             </span>
           </MoTaiLieu>
+          </div>
         ))}
       </div>
     </Card>

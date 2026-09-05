@@ -50,17 +50,31 @@ async function docKho(): Promise<Kho> {
     const d = await getStorage({ keys: [KHOA] });
     const raw = (d as Record<string, unknown>)?.[KHOA];
     return typeof raw === "string" && raw ? (JSON.parse(raw) as Kho) : {};
-  } catch {
-    // Kho hỏng hoặc chưa được cấp quyền: coi như chưa có lịch nào. KHÔNG ném —
-    // một màn hình trắng vì lỗi đọc kho tệ hơn một màn hình chưa có lịch.
-    return {};
+  } catch (e) {
+    /*
+     * ⚠ ĐỌC HỎNG THÌ NÉM, ĐỪNG TRẢ KHO RỖNG.
+     *
+     * Bản đầu nuốt lỗi và trả `{}` với lý lẽ "màn hình trắng tệ hơn". Lý lẽ ấy
+     * đúng cho việc ĐỌC nhưng giết dữ liệu ở việc GHI: `luuLich` đọc kho, thêm
+     * một khoá, rồi ghi ĐÈ cả kho. Một lần đọc hỏng trả `{}` biến lượt ghi kế
+     * tiếp thành "xoá sạch lịch của mọi lượt khám khác rồi lưu mỗi cái này".
+     *
+     * Nay ném, và `docLich` — đường ĐỌC, nơi lý lẽ cũ vẫn đúng — tự bắt lấy.
+     */
+    throw e instanceof Error ? e : new Error('Không đọc được kho lịch nhắc.');
   }
 }
 
 export async function docLich(
   patientId: number, visitId: number,
 ): Promise<LichNhacThuoc | null> {
-  return (await docKho())[khoaCua(patientId, visitId)] ?? null;
+  // Đường ĐỌC: kho hỏng thì coi như chưa có lịch. Một màn hình "chưa bật nhắc"
+  // vẫn dùng được, còn một màn hình trắng thì không.
+  try {
+    return (await docKho())[khoaCua(patientId, visitId)] ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export async function luuLich(l: LichNhacThuoc): Promise<void> {

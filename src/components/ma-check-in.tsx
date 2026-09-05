@@ -31,6 +31,18 @@ export function MaCheckIn({
   patientId: number;
 }) {
   const canvas = useRef<HTMLCanvasElement | null>(null);
+  /*
+   * ⚠ GIỮ MỐC HẾT HẠN, KHÔNG GIỮ SỐ GIÂY CÒN LẠI.
+   *
+   * Bản đầu đếm ngược bằng một chuỗi `setTimeout` trừ dần một biến. Trình duyệt
+   * trong webview GIẢM NHỊP hoặc DỪNG HẲN bộ đếm giờ khi màn hình tắt hay app
+   * lùi xuống nền — mà đó chính là lúc người bệnh bỏ điện thoại vào túi để xếp
+   * hàng. Quay lại thì đồng hồ trên màn hình nói "còn 12 phút" trong khi vé đã
+   * chết từ lâu, và nhân viên quét mãi không được.
+   *
+   * Giữ MỐC rồi so với `Date.now()` ở mỗi nhịp thì mọi lượt ngủ đều tự bù.
+   */
+  const [hetLuc, datHetLuc] = useState<number | null>(null);
   const [conLai, datConLai] = useState<number | null>(null);
   const [loi, datLoi] = useState<string | null>(null);
 
@@ -50,7 +62,7 @@ export function MaCheckIn({
           errorCorrectionLevel: "M",
         });
       }
-      datConLai(Math.floor(hanMs / 1000));
+      datHetLuc(Date.now() + hanMs);
     } catch (e) {
       datLoi(e instanceof Error ? e.message : "Không lấy được mã check-in.");
     }
@@ -60,21 +72,39 @@ export function MaCheckIn({
     void lay();
   }, [lay]);
 
-  // Đếm ngược, và tự đúc lại khi về 0.
+  /*
+   * Đếm ngược bằng cách SO VỚI ĐỒNG HỒ mỗi giây, và tự đúc lại khi hết hạn.
+   * `setInterval` một cái duy nhất thay cho chuỗi `setTimeout` nối nhau: một
+   * nhịp bị bỏ lỡ không làm lệch những nhịp sau.
+   */
   useEffect(() => {
-    if (conLai === null) return undefined;
-    if (conLai <= 0) {
-      void lay();
-      return undefined;
-    }
-    const t = setTimeout(() => datConLai((c) => (c === null ? null : c - 1)), 1000);
-    return () => clearTimeout(t);
-  }, [conLai, lay]);
+    if (hetLuc === null) return undefined;
+    const nhip = () => {
+      const con = Math.max(0, Math.round((hetLuc - Date.now()) / 1000));
+      datConLai(con);
+      if (con === 0) void lay();
+    };
+    nhip();
+    const id = setInterval(nhip, 1000);
+    return () => clearInterval(id);
+  }, [hetLuc, lay]);
 
   if (loi) {
+    /*
+     * CÓ ĐƯỜNG RA. Bản đầu chỉ in câu lỗi rồi dừng — người bệnh đứng ở quầy,
+     * mã không hiện, và cách duy nhất là thoát hẳn màn hình rồi vào lại. Một
+     * nút bấm rẻ hơn nhiều so với một người quay ra hỏi nhân viên.
+     */
     return (
-      <div className="rounded-md bg-error-soft px-3 py-2 text-sm text-error">
-        {loi}
+      <div className="rounded-md bg-error-soft px-3 py-3 text-sm text-error">
+        <p>{loi}</p>
+        <button
+          type="button"
+          onClick={() => void lay()}
+          className="mt-2 min-h-[44px] w-full rounded-md bg-error px-3 text-white"
+        >
+          Thử lại
+        </button>
       </div>
     );
   }
@@ -89,7 +119,12 @@ export function MaCheckIn({
         nền màu hay một góc bị cắt là lý do quét mãi không ăn mà không ai hiểu vì sao.
       */}
       <div className="rounded-md bg-white p-3">
-        <canvas ref={canvas} aria-label="Mã QR check-in" />
+        {/*
+          `role="img"` đi CÙNG `aria-label`: một <canvas> trần không có vai trò
+          ngầm định nào, nên trình đọc màn hình bỏ qua cả nhãn. Thiếu nó thì
+          người dùng VoiceOver không biết trên màn hình có mã gì.
+        */}
+        <canvas ref={canvas} role="img" aria-label="Mã QR check-in" />
       </div>
       <p className="mt-2 text-sm text-ink-muted">
         Đưa màn hình này cho nhân viên tiếp đón quét.

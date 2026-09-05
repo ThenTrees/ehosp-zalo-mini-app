@@ -2,6 +2,7 @@ import { useAtomValue } from "jotai";
 
 import { Card, SectionHeader } from "@/components/ui";
 import { trangThaiLuotState } from "@/state";
+import { formatIsoDate, todayIso } from "@/utils/format";
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════
@@ -37,12 +38,28 @@ export function TienDoLuotKham({
 
   return (
     <Card>
-      <SectionHeader title="Tiến độ khám hôm nay" />
+      {/*
+        Tiêu đề theo NGÀY CỦA LƯỢT KHÁM, không đóng cứng "hôm nay": khối này
+        cũng hiện trên lượt khám cũ, và "Tiến độ khám hôm nay" trên một lượt của
+        tháng trước là một câu nói dối nhỏ mà người đọc phải tự sửa trong đầu.
+      */}
+      <SectionHeader
+        title={
+          tt.visitDate === todayIso()
+            ? "Tiến độ khám hôm nay"
+            : `Tiến độ lượt khám ${formatIsoDate(tt.visitDate ?? "")}`
+        }
+      />
       <ol className="flex flex-col">
         {tt.moc.map((m, i) => (
           <li key={m.ma} className="flex gap-3">
             {/* Cột trái: chấm + đường nối. Đường nối dừng ở mục cuối. */}
             <div className="flex flex-col items-center">
+              {/*
+                Chấm là thứ DUY NHẤT nói xong hay chưa, và nó thuần màu sắc —
+                trình đọc màn hình không thấy gì, người mù màu cũng vậy. Nhãn
+                chữ đi kèm, ẩn khỏi mắt nhưng có với trình đọc.
+              */}
               <span
                 aria-hidden
                 className={
@@ -63,6 +80,9 @@ export function TienDoLuotKham({
                   }
                 >
                   {m.ten}
+                  <span className="sr-only">
+                    {m.xong ? " — đã xong" : " — chưa xong"}
+                  </span>
                 </span>
                 {m.dem && (
                   <span className="shrink-0 text-xs tabular-nums text-ink-muted">

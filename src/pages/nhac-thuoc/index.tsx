@@ -21,7 +21,7 @@ import {
   gomNhomNhac,
   soNgayDeNghi,
 } from "@/utils/lich-uong-thuoc";
-import { todayIso } from "@/utils/format";
+import { formatIsoDateLong, todayIso } from "@/utils/format";
 import type { ThuocDaKe } from "@/types";
 
 /**
@@ -127,18 +127,43 @@ export default function NhacThuocPage() {
       await luuLich(l);
       datDaLuu(l);
       toast.success("Đã bật nhắc uống thuốc.");
+    } catch (e) {
+      /*
+       * NÓI RA KHI GHI HỎNG. Kho lưu của zmp-sdk có thể từ chối (chưa được cấp
+       * quyền, hết dung lượng), và bản đầu nuốt lỗi trong `finally` — nút nhả
+       * ra, không có thông báo nào, và người bệnh tưởng đã bật nhắc trong khi
+       * KHÔNG có gì được lưu. Im lặng ở đây tệ hơn hẳn một câu lỗi.
+       */
+      toast.error(
+        e instanceof Error ? e.message : "Không lưu được lịch nhắc trên máy.",
+      );
     } finally {
       datDangLuu(false);
     }
   };
 
   const tat = async () => {
-    await xoaLich(patientId, visitId);
-    datDaLuu(null);
-    toast.success("Đã tắt nhắc.");
+    try {
+      await xoaLich(patientId, visitId);
+      datDaLuu(null);
+      toast.success("Đã tắt nhắc.");
+    } catch (e) {
+      // Cùng lý do với `bat`: tắt hỏng mà im lặng thì người bệnh tưởng đã tắt.
+      toast.error(
+        e instanceof Error ? e.message : "Không xoá được lịch nhắc trên máy.",
+      );
+    }
   };
 
   const keTiep = daLuu ? nhacKeTiep(daLuu) : null;
+  /*
+   * Số ngày CÒN LẠI, tính từ ngày bắt đầu — không phải tổng số ngày đã đặt.
+   * `Math.ceil` để ngày đang dùng dở vẫn tính là một ngày còn lại.
+   */
+  const conLaiNgay = daLuu
+    ? Math.max(0, daLuu.soNgay - Math.floor(
+      (Date.now() - new Date(`${daLuu.tuNgay}T00:00:00`).getTime()) / 86_400_000))
+    : 0;
 
   return (
     <div className="space-y-4 p-4">
@@ -221,9 +246,20 @@ export default function NhacThuocPage() {
 
       {daLuu ? (
         <>
+          {/*
+            "CÒN N NGÀY" PHẢI LÀ SỐ NGÀY CÒN LẠI, không phải tổng số ngày đã
+            đặt. Bản đầu in `daLuu.soNgay` — một lịch 7 ngày bật từ tuần trước
+            vẫn nói "còn 7 ngày" mãi mãi, và người bệnh uống thêm một tuần nữa.
+
+            Ngày cũng in kiểu người đọc: "05/09/2026" chứ không "2026-09-05".
+          */}
           <div className="rounded-md bg-primary-soft px-4 py-3 text-sm text-primary-ink">
-            Đang bật · còn {daLuu.soNgay} ngày kể từ {daLuu.tuNgay}
-            {keTiep ? ` · lần nhắc tới ${keTiep.gio}` : " · lịch đã hết hạn"}
+            {conLaiNgay > 0
+              ? `Đang bật · còn ${conLaiNgay} ngày`
+              : "Lịch đã hết hạn"}
+            {" · bắt đầu "}
+            {formatIsoDateLong(daLuu.tuNgay)}
+            {keTiep ? ` · lần nhắc tới ${keTiep.gio}` : ""}
           </div>
           <Button variant="secondary" onClick={() => void tat()}>
             Tắt nhắc
